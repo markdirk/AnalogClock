@@ -1,0 +1,372 @@
+using System;
+using System.Globalization;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Threading;
+
+namespace AnalogClock;
+
+public class ClockControl : Control
+{
+    private Window? _window;
+    private DispatcherTimer? _timer;
+    private const double TaperRatio = 0.95;
+
+    private bool _isMoving;
+    private bool _isResizing;
+    private PixelPoint _moveStartScreen;
+    private PixelPoint _windowStartPosition;
+    private Point _resizeStartPos;
+    private Size _resizeStartSize;
+
+    public ClockControl()
+    {
+        ClipToBounds = false;
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        _window = TopLevel.GetTopLevel(this) as Window;
+
+        void ExitApplication()
+        {
+            if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime)
+            {
+                lifetime.Shutdown();
+            }
+            else
+            {
+                Environment.Exit(0);
+            }
+        }
+
+        var exitItem = new Border
+        {
+            Background = Brushes.White,
+            Padding = new Thickness(8, 4),
+            Child = new TextBlock { Text = "Beenden", Foreground = Brushes.Black }
+        };
+
+        exitItem.PointerPressed += (_, e) =>
+        {
+            if (e.GetCurrentPoint(exitItem).Properties.IsLeftButtonPressed)
+            {
+                e.Handled = true;
+                ExitApplication();
+            }
+        };
+
+        var flyout = new Flyout
+        {
+            Placement = PlacementMode.Pointer,
+            Content = exitItem
+        };
+        ContextFlyout = flyout;
+
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        _timer.Tick += (_, _) => InvalidateVisual();
+        _timer.Start();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        _timer?.Stop();
+        _timer = null;
+        _window = null;
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        if (_window is null)
+        {
+            return;
+        }
+
+        var pos = e.GetPosition(this);
+        var (cx, cy, radius) = GetClockMetrics();
+        var resizeCenter = GetResizeGripCenter(cx, cy, radius);
+        var inResize = Distance(pos, resizeCenter) <= radius * 0.15;
+
+        var props = e.GetCurrentPoint(this).Properties;
+
+        if (props.IsRightButtonPressed)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        if (props.IsLeftButtonPressed)
+        {
+            e.Pointer.Capture(this);
+
+            if (inResize)
+            {
+                _isResizing = true;
+                _resizeStartPos = pos;
+                _resizeStartSize = new Size(_window.Width, _window.Height);
+            }
+            else
+            {
+                _isMoving = true;
+                _moveStartScreen = _window.PointToScreen(pos);
+                _windowStartPosition = _window.Position;
+            }
+
+            e.Handled = true;
+        }
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+
+        if (_window is null)
+        {
+            return;
+        }
+
+        var pos = e.GetPosition(this);
+
+        if (_isMoving && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            var currentScreen = _window.PointToScreen(pos);
+            var delta = new PixelPoint(currentScreen.X - _moveStartScreen.X, currentScreen.Y - _moveStartScreen.Y);
+            _window.Position = new PixelPoint(_windowStartPosition.X + delta.X, _windowStartPosition.Y + delta.Y);
+        }
+        else if (_isResizing && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            var delta = pos - _resizeStartPos;
+            var scale = _window.RenderScaling;
+            var newWidth = Math.Max(200, _resizeStartSize.Width + delta.X / scale);
+            var newHeight = Math.Max(200, _resizeStartSize.Height + delta.Y / scale);
+            _window.Width = newWidth;
+            _window.Height = newHeight;
+        }
+        else
+        {
+            var (cx, cy, radius) = GetClockMetrics();
+            var resizeCenter = GetResizeGripCenter(cx, cy, radius);
+            var inResize = Distance(pos, resizeCenter) <= radius * 0.15;
+            Cursor = inResize ? new Cursor(StandardCursorType.BottomRightCorner) : new Cursor(StandardCursorType.Arrow);
+        }
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+
+        _isMoving = false;
+        _isResizing = false;
+        e.Pointer.Capture(null);
+    }
+
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+
+        var w = Bounds.Width;
+        var h = Bounds.Height;
+
+        if (w <= 0 || h <= 0)
+        {
+            return;
+        }
+
+        var cx = w / 2.0;
+        var cy = h / 2.0;
+        var minHalf = Math.Min(w, h) / 2.0;
+        var radius = minHalf * 0.86;
+        var hourWidth = radius * 0.08;
+        var borderWidth = hourWidth * 2.0;
+
+        // diffuse, directionless shadow ring around the clock face (wider and slightly darker)
+        var shadowSpread = radius * 0.20;
+        const int shadowSteps = 25;
+        const double maxLayerAlpha = 10.0;
+
+        for (int i = 0; i < shadowSteps; i++)
+        {
+            var t = i / (double)(shadowSteps - 1);
+            var r = radius + t * shadowSpread + borderWidth * 0.5;
+            var a = (byte)(maxLayerAlpha * (1.0 - t));
+            context.DrawEllipse(new SolidColorBrush(Color.FromArgb(a, 0, 0, 0)), null, new Point(cx, cy), r, r);
+        }
+
+        // clock face background
+        context.DrawEllipse(new SolidColorBrush(Color.Parse("#FF2D2D2D")), null,
+            new Point(cx, cy), radius, radius);
+
+        // black round border, about twice as thick as the hour hand
+        var borderPen = new Pen(Brushes.Black, borderWidth)
+        {
+            LineCap = PenLineCap.Round,
+            LineJoin = PenLineJoin.Round
+        };
+        context.DrawEllipse(null, borderPen, new Point(cx, cy), radius, radius);
+
+        // minute ticks
+        DrawTicks(context, cx, cy, radius);
+
+        // time
+        var now = DateTime.Now;
+        var hour = now.Hour % 12;
+        var minute = now.Minute;
+        var second = now.Second;
+        var millisecond = now.Millisecond;
+
+        var totalSeconds = second + millisecond / 1000.0;
+        var totalMinutes = minute + totalSeconds / 60.0;
+        var totalHours = hour + totalMinutes / 60.0;
+
+        var hourAngle = totalHours * Math.PI / 6.0;
+        var minuteAngle = totalMinutes * Math.PI / 30.0;
+
+        var hourLength = radius * 0.5;
+        var minuteLength = radius * 0.78;
+        var minuteWidth = hourWidth / 3.0;
+
+        // numbers
+        DrawNumbers(context, cx, cy, radius, now.Hour);
+
+        DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, Brushes.White);
+        DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, Brushes.White);
+
+        // center cap
+        context.DrawEllipse(Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
+
+        // resize grip indicator
+        DrawResizeGrip(context, cx, cy, radius);
+    }
+
+    private (double cx, double cy, double radius) GetClockMetrics()
+    {
+        var w = Bounds.Width;
+        var h = Bounds.Height;
+        var cx = w / 2.0;
+        var cy = h / 2.0;
+        var radius = Math.Min(w, h) / 2.0 * 0.86;
+        return (cx, cy, radius);
+    }
+
+    private Point GetResizeGripCenter(double cx, double cy, double radius)
+    {
+        const double angle = 3.0 * Math.PI / 4.0;
+        return new Point(cx + radius * 0.82 * Math.Sin(angle), cy - radius * 0.82 * Math.Cos(angle));
+    }
+
+    private void DrawResizeGrip(DrawingContext context, double cx, double cy, double radius)
+    {
+        var center = GetResizeGripCenter(cx, cy, radius);
+        var gripRadius = radius * 0.08;
+
+        context.DrawEllipse(new SolidColorBrush(Color.Parse("#55FFFFFF")), null, center, gripRadius, gripRadius);
+
+        var pen = new Pen(Brushes.White, radius * 0.01)
+        {
+            LineCap = PenLineCap.Round,
+            LineJoin = PenLineJoin.Round
+        };
+
+        for (int i = -1; i <= 1; i++)
+        {
+            var offset = i * radius * 0.02;
+            var start = new Point(center.X + offset - radius * 0.025, center.Y + offset + radius * 0.025);
+            var end = new Point(center.X + offset + radius * 0.025, center.Y + offset - radius * 0.025);
+            context.DrawLine(pen, start, end);
+        }
+    }
+
+    private void DrawTicks(DrawingContext context, double cx, double cy, double radius)
+    {
+        var tickPen = new Pen(new SolidColorBrush(Color.Parse("#AAFFFFFF")), radius * 0.005)
+        {
+            LineCap = PenLineCap.Round
+        };
+
+        for (int m = 0; m < 60; m++)
+        {
+            var isHour = m % 5 == 0;
+            var innerR = radius * (isHour ? 0.86 : 0.90);
+            var outerR = radius * 0.97;
+            var angle = m * Math.PI / 30.0;
+            var x1 = cx + innerR * Math.Sin(angle);
+            var y1 = cy - innerR * Math.Cos(angle);
+            var x2 = cx + outerR * Math.Sin(angle);
+            var y2 = cy - outerR * Math.Cos(angle);
+            context.DrawLine(tickPen, new Point(x1, y1), new Point(x2, y2));
+        }
+    }
+
+    private void DrawNumbers(DrawingContext context, double cx, double cy, double radius, int currentHour)
+    {
+        var numberRadius = radius * 0.78;
+        var fontSize = radius * 0.20;
+        var typeface = new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Bold);
+        var isAfternoon = currentHour > 12; // after 12 noon until 23:59 -> 13..24, after midnight -> 1..12
+
+        for (int i = 1; i <= 12; i++)
+        {
+            var angle = i * Math.PI / 6.0;
+            var x = cx + numberRadius * Math.Sin(angle);
+            var y = cy - numberRadius * Math.Cos(angle);
+            var value = isAfternoon ? i + 12 : i;
+            var text = value.ToString(CultureInfo.InvariantCulture);
+            var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, Brushes.White);
+            var origin = new Point(x - ft.Width / 2.0, y - ft.Height / 2.0);
+            context.DrawText(ft, origin);
+        }
+    }
+
+    private void DrawHand(DrawingContext context, double cx, double cy, double angle, double length, double width, IBrush brush)
+    {
+        var tipStart = length * TaperRatio;
+        var halfWidth = width / 2.0;
+
+        var localPoints = new[]
+        {
+            new Point(-halfWidth, 0),
+            new Point(-halfWidth, -tipStart),
+            new Point(0, -length),
+            new Point(halfWidth, -tipStart),
+            new Point(halfWidth, 0)
+        };
+
+        var geo = new StreamGeometry();
+        using (var gc = geo.Open())
+        {
+            gc.BeginFigure(TransformPoint(localPoints[0], cx, cy, angle), true);
+
+            for (int i = 1; i < localPoints.Length; i++)
+            {
+                gc.LineTo(TransformPoint(localPoints[i], cx, cy, angle));
+            }
+
+            gc.EndFigure(true);
+        }
+
+        context.DrawGeometry(brush, null, geo);
+    }
+
+    private Point TransformPoint(Point p, double cx, double cy, double angle)
+    {
+        var cos = Math.Cos(angle);
+        var sin = Math.Sin(angle);
+        var x = cx + p.X * cos - p.Y * sin;
+        var y = cy + p.X * sin + p.Y * cos;
+        return new Point(x, y);
+    }
+
+    private static double Distance(Point a, Point b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+}
