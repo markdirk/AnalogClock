@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
@@ -12,6 +13,12 @@ public class ClockControl : Control
 {
     private Window? _window;
     private DispatcherTimer? _timer;
+    private Window? _contextMenuWindow;
+    private ClockSettings _settings = new();
+
+    private IBrush? _secondHandBrush;
+    private bool _secondHandVisible;
+
     private const double TaperRatio = 0.95;
 
     private bool _isMoving;
@@ -20,6 +27,11 @@ public class ClockControl : Control
     private PixelPoint _windowStartPosition;
     private Point _resizeStartPos;
     private Size _resizeStartSize;
+
+    private int _lastAlarmHour = -1;
+    private int _lastAlarmMinute = -1;
+    private DateTime _lastAlarmDate = DateTime.MinValue;
+    private readonly HashSet<Guid> _triggeredThisMinute = new();
 
     public ClockControl()
     {
@@ -32,52 +44,211 @@ public class ClockControl : Control
 
         _window = TopLevel.GetTopLevel(this) as Window;
 
-        void ExitApplication()
+        _settings = SettingsService.Load();
+        ApplySecondHandState();
+
+
+
+        if (_window is not null)
         {
-            if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime)
-            {
-                lifetime.Shutdown();
-            }
-            else
-            {
-                Environment.Exit(0);
-            }
+            _window.Opened += OnWindowOpened;
+            _window.Closing += OnWindowClosing;
         }
 
-        var exitItem = new Border
-        {
-            Background = Brushes.White,
-            Padding = new Thickness(8, 4),
-            Child = new TextBlock { Text = "Beenden", Foreground = Brushes.Black }
-        };
-
-        exitItem.PointerPressed += (_, e) =>
-        {
-            if (e.GetCurrentPoint(exitItem).Properties.IsLeftButtonPressed)
-            {
-                e.Handled = true;
-                ExitApplication();
-            }
-        };
-
-        var flyout = new Flyout
-        {
-            Placement = PlacementMode.Pointer,
-            Content = exitItem
-        };
-        ContextFlyout = flyout;
-
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-        _timer.Tick += (_, _) => InvalidateVisual();
+        _timer.Tick += (_, _) =>
+        {
+            InvalidateVisual();
+            CheckAlarms();
+        };
         _timer.Start();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
+
         _timer?.Stop();
         _timer = null;
+
+        if (_window is not null)
+        {
+            _window.Opened -= OnWindowOpened;
+            _window.Closing -= OnWindowClosing;
+        }
+
         _window = null;
+        _contextMenuWindow = null;
+    }
+
+    private void OnWindowOpened(object? sender, EventArgs e)
+    {
+        if (_window is null)
+        {
+            return;
+        }
+
+        if (!double.IsNaN(_settings.Width) && _settings.Width >= 200)
+        {
+            _window.Width = _settings.Width;
+        }
+
+        if (!double.IsNaN(_settings.Height) && _settings.Height >= 200)
+        {
+            _window.Height = _settings.Height;
+        }
+
+        if (!double.IsNaN(_settings.Left) && !double.IsNaN(_settings.Top))
+        {
+            _window.Position = new PixelPoint((int)_settings.Left, (int)_settings.Top);
+        }
+    }
+
+    private void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_window is null)
+        {
+            return;
+        }
+
+        _settings.Width = _window.Width;
+        _settings.Height = _window.Height;
+        _settings.Left = _window.Position.X;
+        _settings.Top = _window.Position.Y;
+        SettingsService.Save(_settings);
+    }
+
+    private Window CreateContextMenuWindow()
+    {
+        var mainPanel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Vertical, Spacing = 2 };
+        var secondPanel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Vertical, Spacing = 2, IsVisible = false };
+
+        Border CreateItem(string text, Action action)
+        {
+            var border = new Border
+            {
+                Background = Brushes.White,
+                Padding = new Thickness(10, 6),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                Child = new TextBlock { Text = text, Foreground = Brushes.Black }
+            };
+            border.PointerPressed += (_, e) =>
+            {
+                if (e.GetCurrentPoint(border).Properties.IsLeftButtonPressed)
+                {
+                    e.Handled = true;
+                    action();
+                }
+            };
+            return border;
+        }
+
+        mainPanel.Children.Add(CreateItem("Zeiger >", () =>
+        {
+            mainPanel.IsVisible = false;
+            secondPanel.IsVisible = true;
+        }));
+
+        mainPanel.Children.Add(CreateItem("Wecker", () =>
+        {
+            _contextMenuWindow?.Close();
+            OpenAlarmWindow();
+        }));
+
+        mainPanel.Children.Add(CreateItem("Beenden", () =>
+        {
+            _contextMenuWindow?.Close();
+            ExitApplication();
+        }));
+
+        secondPanel.Children.Add(CreateItem("Sekunden-Zeiger rot", () =>
+        {
+            SetSecondHand("Red");
+            _contextMenuWindow?.Close();
+        }));
+
+        secondPanel.Children.Add(CreateItem("Sekunden-Zeiger weiß", () =>
+        {
+            SetSecondHand("White");
+            _contextMenuWindow?.Close();
+        }));
+
+        secondPanel.Children.Add(CreateItem("Sekundenzeiger aus", () =>
+        {
+            SetSecondHand("Hidden");
+            _contextMenuWindow?.Close();
+        }));
+
+        secondPanel.Children.Add(CreateItem("< Zurück", () =>
+        {
+            secondPanel.IsVisible = false;
+            mainPanel.IsVisible = true;
+        }));
+
+        var root = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Vertical,
+            Background = Brushes.White
+        };
+        root.Children.Add(mainPanel);
+        root.Children.Add(secondPanel);
+
+        var window = new Window
+        {
+            SystemDecorations = SystemDecorations.None,
+            CanResize = false,
+            ShowInTaskbar = false,
+            Topmost = true,
+            Width = 180,
+            SizeToContent = SizeToContent.Height,
+            Background = Brushes.White,
+            Content = root
+        };
+
+        window.Deactivated += (_, _) => window.Close();
+
+        return window;
+    }
+
+    private void ApplySecondHandState()
+    {
+        _secondHandVisible = _settings.SecondHandState != "Hidden";
+        _secondHandBrush = _settings.SecondHandState == "Red" ? new SolidColorBrush(Color.Parse("#FF800020"))
+                         : _settings.SecondHandState == "White" ? Brushes.White
+                         : null;
+    }
+
+    private void SetSecondHand(string state)
+    {
+        _settings.SecondHandState = state;
+        ApplySecondHandState();
+        SettingsService.Save(_settings);
+        InvalidateVisual();
+    }
+
+    private void OpenAlarmWindow()
+    {
+        if (_window is null)
+        {
+            return;
+        }
+
+        var alarmWindow = new AlarmWindow(_settings);
+        alarmWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        alarmWindow.Show();
+        alarmWindow.Activate();
+    }
+
+    private void ExitApplication()
+    {
+        if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime)
+        {
+            lifetime.Shutdown();
+        }
+        else
+        {
+            Environment.Exit(0);
+        }
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -99,6 +270,12 @@ public class ClockControl : Control
         if (props.IsRightButtonPressed)
         {
             e.Handled = true;
+            var screen = _window.PointToScreen(pos);
+            _contextMenuWindow?.Close();
+            _contextMenuWindow = CreateContextMenuWindow();
+            _contextMenuWindow.Position = new PixelPoint((int)screen.X, (int)screen.Y);
+            _contextMenuWindow.Show();
+            _contextMenuWindow.Activate();
             return;
         }
 
@@ -167,6 +344,72 @@ public class ClockControl : Control
         e.Pointer.Capture(null);
     }
 
+    private void CheckAlarms()
+    {
+        var now = DateTime.Now;
+
+        if (now.Date != _lastAlarmDate.Date || now.Hour != _lastAlarmHour || now.Minute != _lastAlarmMinute)
+        {
+            _triggeredThisMinute.Clear();
+            _lastAlarmDate = now;
+            _lastAlarmHour = now.Hour;
+            _lastAlarmMinute = now.Minute;
+        }
+
+        foreach (var alarm in _settings.Alarms)
+        {
+            if (!alarm.Enabled)
+            {
+                continue;
+            }
+
+            if (alarm.Hour != now.Hour || alarm.Minute != now.Minute)
+            {
+                continue;
+            }
+
+            if (!IsDayEnabled(alarm, now.DayOfWeek))
+            {
+                continue;
+            }
+
+            if (_triggeredThisMinute.Contains(alarm.Id))
+            {
+                continue;
+            }
+
+            _triggeredThisMinute.Add(alarm.Id);
+            TriggerAlarm(alarm);
+        }
+    }
+
+    private static bool IsDayEnabled(Alarm alarm, DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => alarm.Monday,
+            DayOfWeek.Tuesday => alarm.Tuesday,
+            DayOfWeek.Wednesday => alarm.Wednesday,
+            DayOfWeek.Thursday => alarm.Thursday,
+            DayOfWeek.Friday => alarm.Friday,
+            DayOfWeek.Saturday => alarm.Saturday,
+            DayOfWeek.Sunday => alarm.Sunday,
+            _ => false
+        };
+    }
+
+    private void TriggerAlarm(Alarm alarm)
+    {
+        if (_window is null)
+        {
+            return;
+        }
+
+        var alert = new AlarmAlertWindow(alarm.Description);
+        alert.Show();
+        alert.Activate();
+    }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
@@ -186,7 +429,6 @@ public class ClockControl : Control
         var hourWidth = radius * 0.08;
         var borderWidth = radius * 0.08;
 
-        // diffuse, directionless shadow ring around the clock face (wider and slightly darker)
         var shadowSpread = radius * 0.20;
         const int shadowSteps = 25;
         const double maxLayerAlpha = 10.0;
@@ -200,11 +442,9 @@ public class ClockControl : Control
             context.DrawEllipse(new SolidColorBrush(Color.FromArgb(a, 0, 0, 0)), null, new Point(cx, cy), r, r);
         }
 
-        // clock face background
         context.DrawEllipse(new SolidColorBrush(Color.Parse("#FF2D2D2D")), null,
             new Point(cx, cy), radius, radius);
 
-        // black round border, based on the reference image
         var borderPen = new Pen(Brushes.Black, borderWidth)
         {
             LineCap = PenLineCap.Round,
@@ -212,10 +452,8 @@ public class ClockControl : Control
         };
         context.DrawEllipse(null, borderPen, new Point(cx, cy), radius + borderWidth / 2.0, radius + borderWidth / 2.0);
 
-        // minute ticks
         DrawTicks(context, cx, cy, radius);
 
-        // time
         var now = DateTime.Now;
         var hour = now.Hour % 12;
         var minute = now.Minute;
@@ -233,26 +471,25 @@ public class ClockControl : Control
         var minuteLength = radius * 0.78;
         var minuteWidth = hourWidth / 1.5;
 
-        // numbers
         DrawNumbers(context, cx, cy, radius, now.Hour);
 
         DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, Brushes.White);
         DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, Brushes.White);
 
-        // second hand
-        var secondAngle = totalSeconds * Math.PI / 30.0;
-        var secondLength = radius * 0.92;
-        var secondTail = radius * 0.15;
-        var secondWidth = radius * 0.008;
-        var secondPen = new Pen(Brushes.White, secondWidth) { LineCap = PenLineCap.Round };
-        var secondStart = new Point(cx - secondTail * Math.Sin(secondAngle), cy + secondTail * Math.Cos(secondAngle));
-        var secondEnd = new Point(cx + secondLength * Math.Sin(secondAngle), cy - secondLength * Math.Cos(secondAngle));
-        context.DrawLine(secondPen, secondStart, secondEnd);
+        if (_secondHandVisible && _secondHandBrush is not null)
+        {
+            var secondAngle = totalSeconds * Math.PI / 30.0;
+            var secondLength = radius * 0.92;
+            var secondTail = radius * 0.15;
+            var secondWidth = radius * 0.008;
+            var secondPen = new Pen(_secondHandBrush, secondWidth) { LineCap = PenLineCap.Round };
+            var secondStart = new Point(cx - secondTail * Math.Sin(secondAngle), cy + secondTail * Math.Cos(secondAngle));
+            var secondEnd = new Point(cx + secondLength * Math.Sin(secondAngle), cy - secondLength * Math.Cos(secondAngle));
+            context.DrawLine(secondPen, secondStart, secondEnd);
+        }
 
-        // center cap
         context.DrawEllipse(Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
 
-        // resize grip indicator
         DrawResizeGrip(context, cx, cy, radius);
     }
 
@@ -324,7 +561,7 @@ public class ClockControl : Control
         var numberRadius = radius * 0.76;
         var fontSize = radius * 0.17;
         var typeface = new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Bold);
-        var isAfternoon = currentHour > 12; // after 12 noon until 23:59 -> 13..24, after midnight -> 1..12
+        var isAfternoon = currentHour > 12;
 
         for (int i = 1; i <= 12; i++)
         {

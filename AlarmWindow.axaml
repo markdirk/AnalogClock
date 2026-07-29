@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AnalogClock.AlarmWindow"
+        Title="Wecker"
+        Width="360" Height="520"
+        Background="#FF2D2D2D"
+        Foreground="White"
+        Topmost="True"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner">
+  <Grid Margin="15" RowDefinitions="Auto,*,Auto,Auto">
+    <TextBlock Text="Wecker" FontSize="22" Margin="0,0,0,10" />
+    <ListBox Grid.Row="1" x:Name="AlarmList" Background="#FF3D3D3D" Foreground="White" Margin="0,0,0,10" />
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,0,0,10">
+      <Button x:Name="AddButton" Content="+" FontSize="18" Width="40" Height="40" Foreground="White" Background="#FF555555" ClickMode="Press" />
+      <Button x:Name="DeleteButton" Content="Löschen" Foreground="White" Background="#FF555555" ClickMode="Press" />
+    </StackPanel>
+    <Grid Grid.Row="3" x:Name="EditPanel" IsVisible="False" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+      <TextBlock Grid.Row="0" Text="Zeit:" VerticalAlignment="Center" Margin="0,0,10,0" />
+      <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="5">
+        <NumericUpDown x:Name="HourUpDown" Minimum="0" Maximum="23" Increment="1" FormatString="00" Width="70" Foreground="White" Background="#FF555555" />
+        <TextBlock Text=":" VerticalAlignment="Center" FontSize="20" />
+        <NumericUpDown x:Name="MinuteUpDown" Minimum="0" Maximum="59" Increment="1" FormatString="00" Width="70" Foreground="White" Background="#FF555555" />
+      </StackPanel>
+
+      <TextBlock Grid.Row="1" Text="Tage:" VerticalAlignment="Center" Margin="0,10,10,0" />
+      <UniformGrid Grid.Row="1" Grid.Column="1" Columns="7" Margin="0,10,0,0" x:Name="DaysGrid">
+        <CheckBox x:Name="MoCheck" Content="Mo" Foreground="White" />
+        <CheckBox x:Name="DiCheck" Content="Di" Foreground="White" />
+        <CheckBox x:Name="MiCheck" Content="Mi" Foreground="White" />
+        <CheckBox x:Name="DoCheck" Content="Do" Foreground="White" />
+        <CheckBox x:Name="FrCheck" Content="Fr" Foreground="White" />
+        <CheckBox x:Name="SaCheck" Content="Sa" Foreground="White" />
+        <CheckBox x:Name="SoCheck" Content="So" Foreground="White" />
+      </UniformGrid>
+
+      <TextBlock Grid.Row="2" Text="Beschreibung:" VerticalAlignment="Center" Margin="0,10,10,0" />
+      <TextBox Grid.Row="2" Grid.Column="1" x:Name="DescriptionBox" Margin="0,10,0,0" Watermark="z. B. Mittagspause" Foreground="White" Background="#FF555555" CaretBrush="White" />
+
+      <CheckBox Grid.Row="3" Grid.Column="1" x:Name="EnabledCheck" Content="Aktiv" Foreground="White" Margin="0,10,0,0" />
+
+      <Button Grid.Row="4" Grid.Column="1" x:Name="SaveButton" Content="Speichern" HorizontalAlignment="Right" Margin="0,15,0,0" Foreground="White" Background="#FF555555" ClickMode="Press" />
+    </Grid>
+  </Grid>
+</Window>
