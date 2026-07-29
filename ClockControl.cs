@@ -243,7 +243,7 @@ public class ClockControl : Control
         var secondAngle = totalSeconds * Math.PI / 30.0;
         var secondLength = radius * 0.92;
         var secondTail = radius * 0.15;
-        var secondWidth = radius * 0.004;
+        var secondWidth = radius * 0.008;
         var secondPen = new Pen(Brushes.White, secondWidth) { LineCap = PenLineCap.Round };
         var secondStart = new Point(cx - secondTail * Math.Sin(secondAngle), cy + secondTail * Math.Cos(secondAngle));
         var secondEnd = new Point(cx + secondLength * Math.Sin(secondAngle), cy - secondLength * Math.Cos(secondAngle));
