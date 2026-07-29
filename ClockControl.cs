@@ -184,7 +184,7 @@ public class ClockControl : Control
         var minHalf = Math.Min(w, h) / 2.0;
         var radius = minHalf * 0.80;
         var hourWidth = radius * 0.08;
-        var borderWidth = radius * 0.06;
+        var borderWidth = radius * 0.08;
 
         // diffuse, directionless shadow ring around the clock face (wider and slightly darker)
         var shadowSpread = radius * 0.20;
@@ -231,7 +231,7 @@ public class ClockControl : Control
 
         var hourLength = radius * 0.5;
         var minuteLength = radius * 0.78;
-        var minuteWidth = hourWidth / 3.0;
+        var minuteWidth = hourWidth / 1.5;
 
         // numbers
         DrawNumbers(context, cx, cy, radius, now.Hour);
@@ -308,7 +308,7 @@ public class ClockControl : Control
         for (int m = 0; m < 60; m++)
         {
             var isHour = m % 5 == 0;
-            var innerR = radius * (isHour ? 0.86 : 0.94);
+            var innerR = radius * (isHour ? 0.86 : 0.955);
             var outerR = radius * 0.99;
             var angle = m * Math.PI / 30.0;
             var x1 = cx + innerR * Math.Sin(angle);
