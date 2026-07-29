@@ -308,7 +308,7 @@ public class ClockControl : Control
         for (int m = 0; m < 60; m++)
         {
             var isHour = m % 5 == 0;
-            var innerR = radius * (isHour ? 0.86 : 0.955);
+            var innerR = radius * (isHour ? 0.895 : 0.955);
             var outerR = radius * 0.99;
             var angle = m * Math.PI / 30.0;
             var x1 = cx + innerR * Math.Sin(angle);
