@@ -92,7 +92,7 @@ public class ClockControl : Control
         var pos = e.GetPosition(this);
         var (cx, cy, radius) = GetClockMetrics();
         var resizeCenter = GetResizeGripCenter(cx, cy, radius);
-        var inResize = Distance(pos, resizeCenter) <= radius * 0.15;
+        var inResize = Distance(pos, resizeCenter) <= radius * 0.12;
 
         var props = e.GetCurrentPoint(this).Properties;
 
@@ -153,7 +153,7 @@ public class ClockControl : Control
         {
             var (cx, cy, radius) = GetClockMetrics();
             var resizeCenter = GetResizeGripCenter(cx, cy, radius);
-            var inResize = Distance(pos, resizeCenter) <= radius * 0.15;
+            var inResize = Distance(pos, resizeCenter) <= radius * 0.12;
             Cursor = inResize ? new Cursor(StandardCursorType.BottomRightCorner) : new Cursor(StandardCursorType.Arrow);
         }
     }
@@ -275,11 +275,11 @@ public class ClockControl : Control
     private void DrawResizeGrip(DrawingContext context, double cx, double cy, double radius)
     {
         var center = GetResizeGripCenter(cx, cy, radius);
-        var gripRadius = radius * 0.08;
+        var gripRadius = radius * 0.06;
 
-        context.DrawEllipse(new SolidColorBrush(Color.Parse("#55FFFFFF")), null, center, gripRadius, gripRadius);
+        context.DrawEllipse(new SolidColorBrush(Color.Parse("#33FFFFFF")), null, center, gripRadius, gripRadius);
 
-        var pen = new Pen(Brushes.White, radius * 0.01)
+        var pen = new Pen(Brushes.White, radius * 0.0075)
         {
             LineCap = PenLineCap.Round,
             LineJoin = PenLineJoin.Round
@@ -287,9 +287,9 @@ public class ClockControl : Control
 
         for (int i = -1; i <= 1; i++)
         {
-            var offset = i * radius * 0.02;
-            var start = new Point(center.X + offset - radius * 0.025, center.Y + offset + radius * 0.025);
-            var end = new Point(center.X + offset + radius * 0.025, center.Y + offset - radius * 0.025);
+            var offset = i * radius * 0.015;
+            var start = new Point(center.X + offset - radius * 0.01875, center.Y + offset + radius * 0.01875);
+            var end = new Point(center.X + offset + radius * 0.01875, center.Y + offset - radius * 0.01875);
             context.DrawLine(pen, start, end);
         }
     }
