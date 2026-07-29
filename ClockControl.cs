@@ -182,19 +182,20 @@ public class ClockControl : Control
         var cx = w / 2.0;
         var cy = h / 2.0;
         var minHalf = Math.Min(w, h) / 2.0;
-        var radius = minHalf * 0.86;
+        var radius = minHalf * 0.80;
         var hourWidth = radius * 0.08;
-        var borderWidth = hourWidth * 2.0;
+        var borderWidth = radius * 0.06;
 
         // diffuse, directionless shadow ring around the clock face (wider and slightly darker)
         var shadowSpread = radius * 0.20;
         const int shadowSteps = 25;
         const double maxLayerAlpha = 10.0;
+        var shadowInner = radius + borderWidth;
 
         for (int i = 0; i < shadowSteps; i++)
         {
             var t = i / (double)(shadowSteps - 1);
-            var r = radius + t * shadowSpread + borderWidth * 0.5;
+            var r = shadowInner + t * shadowSpread;
             var a = (byte)(maxLayerAlpha * (1.0 - t));
             context.DrawEllipse(new SolidColorBrush(Color.FromArgb(a, 0, 0, 0)), null, new Point(cx, cy), r, r);
         }
@@ -203,13 +204,13 @@ public class ClockControl : Control
         context.DrawEllipse(new SolidColorBrush(Color.Parse("#FF2D2D2D")), null,
             new Point(cx, cy), radius, radius);
 
-        // black round border, about twice as thick as the hour hand
+        // black round border, based on the reference image
         var borderPen = new Pen(Brushes.Black, borderWidth)
         {
             LineCap = PenLineCap.Round,
             LineJoin = PenLineJoin.Round
         };
-        context.DrawEllipse(null, borderPen, new Point(cx, cy), radius, radius);
+        context.DrawEllipse(null, borderPen, new Point(cx, cy), radius + borderWidth / 2.0, radius + borderWidth / 2.0);
 
         // minute ticks
         DrawTicks(context, cx, cy, radius);
@@ -238,6 +239,16 @@ public class ClockControl : Control
         DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, Brushes.White);
         DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, Brushes.White);
 
+        // second hand
+        var secondAngle = totalSeconds * Math.PI / 30.0;
+        var secondLength = radius * 0.92;
+        var secondTail = radius * 0.15;
+        var secondWidth = radius * 0.004;
+        var secondPen = new Pen(Brushes.White, secondWidth) { LineCap = PenLineCap.Round };
+        var secondStart = new Point(cx - secondTail * Math.Sin(secondAngle), cy + secondTail * Math.Cos(secondAngle));
+        var secondEnd = new Point(cx + secondLength * Math.Sin(secondAngle), cy - secondLength * Math.Cos(secondAngle));
+        context.DrawLine(secondPen, secondStart, secondEnd);
+
         // center cap
         context.DrawEllipse(Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
 
@@ -251,7 +262,7 @@ public class ClockControl : Control
         var h = Bounds.Height;
         var cx = w / 2.0;
         var cy = h / 2.0;
-        var radius = Math.Min(w, h) / 2.0 * 0.86;
+        var radius = Math.Min(w, h) / 2.0 * 0.80;
         return (cx, cy, radius);
     }
 
@@ -285,7 +296,11 @@ public class ClockControl : Control
 
     private void DrawTicks(DrawingContext context, double cx, double cy, double radius)
     {
-        var tickPen = new Pen(new SolidColorBrush(Color.Parse("#AAFFFFFF")), radius * 0.005)
+        var minuteTickPen = new Pen(new SolidColorBrush(Color.Parse("#99FFFFFF")), radius * 0.003)
+        {
+            LineCap = PenLineCap.Round
+        };
+        var hourTickPen = new Pen(new SolidColorBrush(Color.Parse("#DDFFFFFF")), radius * 0.006)
         {
             LineCap = PenLineCap.Round
         };
@@ -293,21 +308,21 @@ public class ClockControl : Control
         for (int m = 0; m < 60; m++)
         {
             var isHour = m % 5 == 0;
-            var innerR = radius * (isHour ? 0.86 : 0.90);
-            var outerR = radius * 0.97;
+            var innerR = radius * (isHour ? 0.86 : 0.94);
+            var outerR = radius * 0.99;
             var angle = m * Math.PI / 30.0;
             var x1 = cx + innerR * Math.Sin(angle);
             var y1 = cy - innerR * Math.Cos(angle);
             var x2 = cx + outerR * Math.Sin(angle);
             var y2 = cy - outerR * Math.Cos(angle);
-            context.DrawLine(tickPen, new Point(x1, y1), new Point(x2, y2));
+            context.DrawLine(isHour ? hourTickPen : minuteTickPen, new Point(x1, y1), new Point(x2, y2));
         }
     }
 
     private void DrawNumbers(DrawingContext context, double cx, double cy, double radius, int currentHour)
     {
-        var numberRadius = radius * 0.78;
-        var fontSize = radius * 0.20;
+        var numberRadius = radius * 0.76;
+        var fontSize = radius * 0.17;
         var typeface = new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Bold);
         var isAfternoon = currentHour > 12; // after 12 noon until 23:59 -> 13..24, after midnight -> 1..12
 
