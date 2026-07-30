@@ -552,7 +552,7 @@ public class ClockControl : Control
         var hourAngle = totalHours * Math.PI / 6.0;
         var minuteAngle = totalMinutes * Math.PI / 30.0;
 
-        var hourLength = radius * 0.64;
+        var hourLength = radius * 0.61;
         var minuteLength = radius * 0.78;
         var minuteWidth = hourWidth / 1.5;
 
@@ -582,23 +582,18 @@ public class ClockControl : Control
     {
         var outer = radius + borderWidth;
         var baseColor = (_borderBrush as SolidColorBrush)?.Color ?? Colors.Black;
-        var shadowColor = DarkenColor(baseColor, 0.25);
-        var midColor = LightenColor(baseColor, 0.35);
-        var lightColor = LightenColor(baseColor, 0.75);
+        var shadowColor = DarkenColor(baseColor, 0.40);
+        var lightColor = LightenColor(baseColor, 0.70);
 
-        var brush = new ConicGradientBrush
+        var brush = new LinearGradientBrush
         {
-            Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
-            Angle = 135,
+            StartPoint = new RelativePoint(0.0, 0.0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(1.0, 1.0, RelativeUnit.Relative),
             GradientStops =
             {
-                new GradientStop(shadowColor, 0.00),
-                new GradientStop(baseColor, 0.20),
-                new GradientStop(midColor, 0.35),
-                new GradientStop(lightColor, 0.50),
-                new GradientStop(midColor, 0.65),
-                new GradientStop(baseColor, 0.80),
-                new GradientStop(shadowColor, 1.00)
+                new GradientStop(lightColor, 0.0),
+                new GradientStop(baseColor, 0.45),
+                new GradientStop(shadowColor, 1.0)
             }
         };
 
