@@ -12,6 +12,7 @@ namespace AnalogClock;
 public class ClockControl : Control
 {
     private Window? _window;
+    private AlarmWindow? _alarmWindow;
     private DispatcherTimer? _timer;
     private Window? _contextMenuWindow;
     private ClockSettings _settings = new();
@@ -233,10 +234,18 @@ public class ClockControl : Control
             return;
         }
 
-        var alarmWindow = new AlarmWindow(_settings);
-        alarmWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        alarmWindow.Show();
-        alarmWindow.Activate();
+        if (_alarmWindow is not null)
+        {
+            _alarmWindow.Activate();
+            return;
+        }
+
+        _alarmWindow = new AlarmWindow(_settings);
+        _alarmWindow.Closed += (_, _) => _alarmWindow = null;
+        _alarmWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+        _alarmWindow.PositionNextTo(_window);
+        _alarmWindow.Show(_window);
+        _alarmWindow.Activate();
     }
 
     private void ExitApplication()
@@ -400,13 +409,14 @@ public class ClockControl : Control
 
     private void TriggerAlarm(Alarm alarm)
     {
-        if (_window is null)
+        var owner = _alarmWindow ?? _window;
+        if (owner is null)
         {
             return;
         }
 
         var alert = new AlarmAlertWindow(alarm.Description);
-        alert.Show();
+        alert.Show(owner);
         alert.Activate();
     }
 

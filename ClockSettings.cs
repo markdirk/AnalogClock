@@ -1,5 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace AnalogClock;
 
@@ -13,7 +15,7 @@ public class ClockSettings
     public ObservableCollection<Alarm> Alarms { get; set; } = new();
 }
 
-public class Alarm
+public class Alarm : INotifyPropertyChanged
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Description { get; set; } = string.Empty;
@@ -29,6 +31,18 @@ public class Alarm
     public bool Enabled { get; set; } = true;
 
     public string DisplayText => ToString();
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void RefreshDisplay()
+    {
+        OnPropertyChanged(nameof(DisplayText));
+    }
+
+    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 
     public override string ToString()
     {

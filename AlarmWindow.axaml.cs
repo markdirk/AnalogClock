@@ -24,6 +24,74 @@ public partial class AlarmWindow : Window
         SetupControls();
     }
 
+    public void PositionNextTo(Window owner)
+    {
+        if (owner is null || !owner.IsVisible)
+        {
+            return;
+        }
+
+        var scale = owner.RenderScaling;
+        var ownerPos = owner.Position;
+        var ownerSize = new PixelSize((int)(owner.Width * scale), (int)(owner.Height * scale));
+        var alarmWidth = (int)(Width * scale);
+        var alarmHeight = (int)(Height * scale);
+        const int margin = 10;
+
+        var screens = owner.Screens;
+        var screen = screens.ScreenFromWindow(owner) ?? screens.Primary;
+        if (screen is null)
+        {
+            return;
+        }
+
+        var work = screen.WorkingArea;
+
+        int xRight = ownerPos.X + ownerSize.Width + margin;
+        int xLeft = ownerPos.X - alarmWidth - margin;
+        int y = ownerPos.Y;
+
+        bool rightFits = xRight >= work.X && xRight + alarmWidth <= work.X + work.Width &&
+                         y >= work.Y && y + alarmHeight <= work.Y + work.Height;
+        bool leftFits = xLeft >= work.X && xLeft + alarmWidth <= work.X + work.Width &&
+                        y >= work.Y && y + alarmHeight <= work.Y + work.Height;
+
+        int x;
+        if (rightFits)
+        {
+            x = xRight;
+        }
+        else if (leftFits)
+        {
+            x = xLeft;
+        }
+        else
+        {
+            x = xRight;
+            if (x + alarmWidth > work.X + work.Width)
+            {
+                x = work.X + work.Width - alarmWidth;
+            }
+
+            if (x < work.X)
+            {
+                x = work.X;
+            }
+
+            if (y + alarmHeight > work.Y + work.Height)
+            {
+                y = work.Y + work.Height - alarmHeight;
+            }
+
+            if (y < work.Y)
+            {
+                y = work.Y;
+            }
+        }
+
+        Position = new PixelPoint(x, y);
+    }
+
     private void SetupControls()
     {
         _dayChecks = new[] { MoCheck, DiCheck, MiCheck, DoCheck, FrCheck, SaCheck, SoCheck };
@@ -35,6 +103,9 @@ public partial class AlarmWindow : Window
         AddButton.Click += AddButton_Click;
         DeleteButton.Click += DeleteButton_Click;
         SaveButton.Click += SaveButton_Click;
+
+        HourUpDown.ValueChanged += (_, _) => UpdateTimeLabel();
+        MinuteUpDown.ValueChanged += (_, _) => UpdateTimeLabel();
 
         Closing += (_, _) => SettingsService.Save(_settings);
     }
@@ -84,6 +155,7 @@ public partial class AlarmWindow : Window
         }
 
         UpdateAlarmFromControls(_currentAlarm);
+        _currentAlarm.RefreshDisplay();
         if (_isNew)
         {
             _settings.Alarms.Add(_currentAlarm);
@@ -113,17 +185,25 @@ public partial class AlarmWindow : Window
 
     private void LoadControls(Alarm alarm)
     {
-            HourUpDown.Value = alarm.Hour;
-            MinuteUpDown.Value = alarm.Minute;
-            DescriptionBox.Text = alarm.Description;
-            EnabledCheck.IsChecked = alarm.Enabled;
-            _dayChecks[0].IsChecked = alarm.Monday;
-            _dayChecks[1].IsChecked = alarm.Tuesday;
-            _dayChecks[2].IsChecked = alarm.Wednesday;
-            _dayChecks[3].IsChecked = alarm.Thursday;
-            _dayChecks[4].IsChecked = alarm.Friday;
-            _dayChecks[5].IsChecked = alarm.Saturday;
-            _dayChecks[6].IsChecked = alarm.Sunday;
+        HourUpDown.Value = alarm.Hour;
+        MinuteUpDown.Value = alarm.Minute;
+        DescriptionBox.Text = alarm.Description;
+        EnabledCheck.IsChecked = alarm.Enabled;
+        _dayChecks[0].IsChecked = alarm.Monday;
+        _dayChecks[1].IsChecked = alarm.Tuesday;
+        _dayChecks[2].IsChecked = alarm.Wednesday;
+        _dayChecks[3].IsChecked = alarm.Thursday;
+        _dayChecks[4].IsChecked = alarm.Friday;
+        _dayChecks[5].IsChecked = alarm.Saturday;
+        _dayChecks[6].IsChecked = alarm.Sunday;
+        UpdateTimeLabel();
+    }
+
+    private void UpdateTimeLabel()
+    {
+        var hour = (int)(HourUpDown.Value ?? 0);
+        var minute = (int)(MinuteUpDown.Value ?? 0);
+        TimeLabel!.Text = $"{hour:D2}:{minute:D2}";
     }
 
     private void UpdateAlarmFromControls(Alarm alarm)
