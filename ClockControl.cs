@@ -244,8 +244,10 @@ public class ClockControl : Control
         _alarmWindow.Closed += (_, _) => _alarmWindow = null;
         _alarmWindow.WindowStartupLocation = WindowStartupLocation.Manual;
         _alarmWindow.PositionNextTo(_window);
-        _alarmWindow.Show(_window);
+        _alarmWindow.Show();
         _alarmWindow.Activate();
+        _alarmWindow.Topmost = false;
+        _alarmWindow.Topmost = true;
     }
 
     private void ExitApplication()

@@ -2,6 +2,7 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 
 namespace AnalogClock;
@@ -107,12 +108,29 @@ public partial class AlarmWindow : Window
         HourUpDown.ValueChanged += (_, _) => UpdateTimeLabel();
         MinuteUpDown.ValueChanged += (_, _) => UpdateTimeLabel();
 
+        Activated += OnActivated;
         Closing += (_, _) => SettingsService.Save(_settings);
+    }
+
+    private void OnActivated(object? sender, EventArgs e)
+    {
+        if (EditPanel.IsVisible)
+        {
+            DescriptionBox?.Focus();
+            DescriptionBox?.SelectAll();
+        }
+        else
+        {
+            this.Focus();
+        }
     }
 
     private void AddButton_Click(object? sender, RoutedEventArgs e)
     {
         var future = DateTime.Now.AddMinutes(1);
+
+        AlarmList.SelectedItem = null;
+
         _currentAlarm = new Alarm
         {
             Hour = future.Hour,
@@ -122,10 +140,11 @@ public partial class AlarmWindow : Window
         };
         _isNew = true;
 
-        AlarmList.SelectedItem = null;
         LoadControls(_currentAlarm);
         EnabledCheck.IsChecked = true;
         EditPanel.IsVisible = true;
+        DescriptionBox?.Focus();
+        DescriptionBox?.SelectAll();
     }
 
     private void DeleteButton_Click(object? sender, RoutedEventArgs e)
@@ -174,6 +193,8 @@ public partial class AlarmWindow : Window
             _isNew = false;
             LoadControls(alarm);
             EditPanel.IsVisible = true;
+            DescriptionBox?.Focus();
+            DescriptionBox?.SelectAll();
         }
         else
         {
