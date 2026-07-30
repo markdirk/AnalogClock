@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -12,6 +13,8 @@ public class ClockSettings
     public double Width { get; set; } = 400;
     public double Height { get; set; } = 400;
     public string SecondHandState { get; set; } = "White";
+    public ClockTheme? CurrentTheme { get; set; }
+    public List<ClockTheme> Themes { get; set; } = new();
     public ObservableCollection<Alarm> Alarms { get; set; } = new();
 }
 

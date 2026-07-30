@@ -13,12 +13,21 @@ public class ClockControl : Control
 {
     private Window? _window;
     private AlarmWindow? _alarmWindow;
+    private ThemeWindow? _themeWindow;
     private DispatcherTimer? _timer;
-    private Window? _contextMenuWindow;
+    private ContextMenu? _contextMenu;
     private ClockSettings _settings = new();
 
+    private IBrush? _faceBrush;
+    private IBrush? _borderBrush;
+    private IBrush? _numberBrush;
+    private IBrush? _hourHandBrush;
+    private IBrush? _minuteHandBrush;
+    private IBrush? _tickBrush;
+    private IBrush? _gripBrush;
     private IBrush? _secondHandBrush;
     private bool _secondHandVisible;
+    private FontFamily _numberFont = FontFamily.Default;
 
     private const double TaperRatio = 0.95;
 
@@ -46,7 +55,8 @@ public class ClockControl : Control
         _window = TopLevel.GetTopLevel(this) as Window;
 
         _settings = SettingsService.Load();
-        ApplySecondHandState();
+        EnsureTheme();
+        ApplyTheme();
 
 
 
@@ -79,7 +89,7 @@ public class ClockControl : Control
         }
 
         _window = null;
-        _contextMenuWindow = null;
+        _contextMenu = null;
     }
 
     private void OnWindowOpened(object? sender, EventArgs e)
@@ -119,110 +129,156 @@ public class ClockControl : Control
         SettingsService.Save(_settings);
     }
 
-    private Window CreateContextMenuWindow()
+    private ContextMenu BuildContextMenu()
     {
-        var mainPanel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Vertical, Spacing = 2 };
-        var secondPanel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Vertical, Spacing = 2, IsVisible = false };
+        var menu = new ContextMenu();
 
-        Border CreateItem(string text, Action action)
-        {
-            var border = new Border
-            {
-                Background = Brushes.White,
-                Padding = new Thickness(10, 6),
-                Cursor = new Cursor(StandardCursorType.Hand),
-                Child = new TextBlock { Text = text, Foreground = Brushes.Black }
-            };
-            border.PointerPressed += (_, e) =>
-            {
-                if (e.GetCurrentPoint(border).Properties.IsLeftButtonPressed)
-                {
-                    e.Handled = true;
-                    action();
-                }
-            };
-            return border;
-        }
+        var zeigerItem = new MenuItem { Header = "Zeiger" };
+        zeigerItem.Items.Add(CreateMenuItem("Sekunden-Zeiger rot", () => SetSecondHand("Red")));
+        zeigerItem.Items.Add(CreateMenuItem("Sekunden-Zeiger weiß", () => SetSecondHand("White")));
+        zeigerItem.Items.Add(CreateMenuItem("Sekundenzeiger aus", () => SetSecondHand("Hidden")));
+        menu.Items.Add(zeigerItem);
 
-        mainPanel.Children.Add(CreateItem("Zeiger >", () =>
-        {
-            mainPanel.IsVisible = false;
-            secondPanel.IsVisible = true;
-        }));
+        menu.Items.Add(CreateMenuItem("Wecker", OpenAlarmWindow));
 
-        mainPanel.Children.Add(CreateItem("Wecker", () =>
-        {
-            _contextMenuWindow?.Close();
-            OpenAlarmWindow();
-        }));
+        var themeItem = new MenuItem { Header = "Theme" };
+        var themesSub = new MenuItem { Header = "Laden" };
+        themesSub.SubmenuOpened += (_, _) => RebuildThemeMenu(themesSub);
+        themeItem.Items.Add(themesSub);
+        themeItem.Items.Add(CreateMenuItem("Bearbeiten...", OpenThemeWindow));
+        menu.Items.Add(themeItem);
 
-        mainPanel.Children.Add(CreateItem("Beenden", () =>
-        {
-            _contextMenuWindow?.Close();
-            ExitApplication();
-        }));
+        menu.Items.Add(CreateMenuItem("Beenden", ExitApplication));
 
-        secondPanel.Children.Add(CreateItem("Sekunden-Zeiger rot", () =>
-        {
-            SetSecondHand("Red");
-            _contextMenuWindow?.Close();
-        }));
-
-        secondPanel.Children.Add(CreateItem("Sekunden-Zeiger weiß", () =>
-        {
-            SetSecondHand("White");
-            _contextMenuWindow?.Close();
-        }));
-
-        secondPanel.Children.Add(CreateItem("Sekundenzeiger aus", () =>
-        {
-            SetSecondHand("Hidden");
-            _contextMenuWindow?.Close();
-        }));
-
-        secondPanel.Children.Add(CreateItem("< Zurück", () =>
-        {
-            secondPanel.IsVisible = false;
-            mainPanel.IsVisible = true;
-        }));
-
-        var root = new StackPanel
-        {
-            Orientation = Avalonia.Layout.Orientation.Vertical,
-            Background = Brushes.White
-        };
-        root.Children.Add(mainPanel);
-        root.Children.Add(secondPanel);
-
-        var window = new Window
-        {
-            SystemDecorations = SystemDecorations.None,
-            CanResize = false,
-            ShowInTaskbar = false,
-            Topmost = true,
-            Width = 180,
-            SizeToContent = SizeToContent.Height,
-            Background = Brushes.White,
-            Content = root
-        };
-
-        window.Deactivated += (_, _) => window.Close();
-
-        return window;
+        return menu;
     }
 
-    private void ApplySecondHandState()
+    private MenuItem CreateMenuItem(string header, Action action)
     {
-        _secondHandVisible = _settings.SecondHandState != "Hidden";
-        _secondHandBrush = _settings.SecondHandState == "Red" ? new SolidColorBrush(Color.Parse("#FF800020"))
-                         : _settings.SecondHandState == "White" ? Brushes.White
-                         : null;
+        var item = new MenuItem { Header = header };
+        item.Click += (_, _) =>
+        {
+            _contextMenu?.Close();
+            action();
+        };
+        return item;
+    }
+
+    private void RebuildThemeMenu(MenuItem themesSub)
+    {
+        themesSub.Items.Clear();
+        foreach (var theme in _settings.Themes)
+        {
+            var name = theme.Name;
+            themesSub.Items.Add(CreateMenuItem(name, () => ApplyThemeByName(name)));
+        }
+
+        if (themesSub.Items.Count == 0)
+        {
+            themesSub.Items.Add(new MenuItem { Header = "(keine)", IsEnabled = false });
+        }
+    }
+
+    private void ApplyThemeByName(string name)
+    {
+        var theme = _settings.Themes.Find(t => t.Name == name);
+        if (theme is null)
+        {
+            return;
+        }
+
+        _settings.CurrentTheme = theme;
+        ApplyTheme();
+        SettingsService.Save(_settings);
+        InvalidateVisual();
+    }
+
+    private void EnsureTheme()
+    {
+        if (_settings.CurrentTheme is null)
+        {
+            _settings.CurrentTheme = CreateDefaultTheme();
+            _settings.CurrentTheme.SecondHandVisible = _settings.SecondHandState != "Hidden";
+            _settings.CurrentTheme.SecondHandColor = _settings.SecondHandState == "Red" ? "#FF800020" : "#FFFFFFFF";
+        }
+    }
+
+    private ClockTheme CreateDefaultTheme()
+    {
+        return new ClockTheme
+        {
+            Name = "Standard",
+            FaceColor = "#FF2D2D2D",
+            BorderColor = "#FF000000",
+            NumberColor = "#FFFFFFFF",
+            HourHandColor = "#FFFFFFFF",
+            MinuteHandColor = "#FFFFFFFF",
+            SecondHandColor = "#FFFFFFFF",
+            TickColor = "#DDFFFFFF",
+            GripColor = "#33FFFFFF",
+            FontName = string.Empty,
+            SecondHandVisible = true
+        };
+    }
+
+    private void ApplyTheme()
+    {
+        var theme = _settings.CurrentTheme ?? CreateDefaultTheme();
+        _faceBrush = ParseBrush(theme.FaceColor);
+        _borderBrush = ParseBrush(theme.BorderColor);
+        _numberBrush = ParseBrush(theme.NumberColor);
+        _hourHandBrush = ParseBrush(theme.HourHandColor);
+        _minuteHandBrush = ParseBrush(theme.MinuteHandColor);
+        _tickBrush = ParseBrush(theme.TickColor);
+        _gripBrush = ParseBrush(theme.GripColor);
+        _secondHandVisible = theme.SecondHandVisible;
+        _secondHandBrush = ParseBrush(theme.SecondHandColor);
+
+        try
+        {
+            _numberFont = string.IsNullOrWhiteSpace(theme.FontName) ? FontFamily.Default : new FontFamily(theme.FontName);
+        }
+        catch
+        {
+            _numberFont = FontFamily.Default;
+        }
+    }
+
+    private static IBrush ParseBrush(string? color)
+    {
+        if (!string.IsNullOrWhiteSpace(color) && Color.TryParse(color, out var c))
+        {
+            return new SolidColorBrush(c);
+        }
+
+        return Brushes.White;
+    }
+
+    private static Color DarkenColor(Color color, double factor)
+    {
+        factor = Math.Clamp(factor, 0, 1);
+        return Color.FromArgb(color.A,
+            (byte)(color.R * factor),
+            (byte)(color.G * factor),
+            (byte)(color.B * factor));
+    }
+
+    private static Color LightenColor(Color color, double factor)
+    {
+        factor = Math.Clamp(factor, 0, 1);
+        return Color.FromArgb(color.A,
+            (byte)(color.R + (255 - color.R) * factor),
+            (byte)(color.G + (255 - color.G) * factor),
+            (byte)(color.B + (255 - color.B) * factor));
     }
 
     private void SetSecondHand(string state)
     {
         _settings.SecondHandState = state;
-        ApplySecondHandState();
+        EnsureTheme();
+        _settings.CurrentTheme!.SecondHandVisible = state != "Hidden";
+        _settings.CurrentTheme.SecondHandColor = state == "Red" ? "#FF800020" : "#FFFFFFFF";
+        ApplyTheme();
         SettingsService.Save(_settings);
         InvalidateVisual();
     }
@@ -248,6 +304,36 @@ public class ClockControl : Control
         _alarmWindow.Activate();
         _alarmWindow.Topmost = false;
         _alarmWindow.Topmost = true;
+    }
+
+    private void OpenThemeWindow()
+    {
+        if (_window is null)
+        {
+            return;
+        }
+
+        if (_themeWindow is not null)
+        {
+            _themeWindow.Activate();
+            return;
+        }
+
+        _themeWindow = new ThemeWindow(_settings, ApplyThemeAndSave);
+        _themeWindow.Closed += (_, _) => _themeWindow = null;
+        _themeWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+        _themeWindow.PositionNextTo(_window);
+        _themeWindow.Show();
+        _themeWindow.Activate();
+        _themeWindow.Topmost = false;
+        _themeWindow.Topmost = true;
+    }
+
+    private void ApplyThemeAndSave()
+    {
+        ApplyTheme();
+        SettingsService.Save(_settings);
+        InvalidateVisual();
     }
 
     private void ExitApplication()
@@ -281,12 +367,10 @@ public class ClockControl : Control
         if (props.IsRightButtonPressed)
         {
             e.Handled = true;
-            var screen = _window.PointToScreen(pos);
-            _contextMenuWindow?.Close();
-            _contextMenuWindow = CreateContextMenuWindow();
-            _contextMenuWindow.Position = new PixelPoint((int)screen.X, (int)screen.Y);
-            _contextMenuWindow.Show();
-            _contextMenuWindow.Activate();
+            _contextMenu = BuildContextMenu();
+            this.ContextMenu = _contextMenu;
+            _contextMenu.Placement = PlacementMode.Pointer;
+            _contextMenu.Open();
             return;
         }
 
@@ -454,15 +538,7 @@ public class ClockControl : Control
             context.DrawEllipse(new SolidColorBrush(Color.FromArgb(a, 0, 0, 0)), null, new Point(cx, cy), r, r);
         }
 
-        context.DrawEllipse(new SolidColorBrush(Color.Parse("#FF2D2D2D")), null,
-            new Point(cx, cy), radius, radius);
-
-        var borderPen = new Pen(Brushes.Black, borderWidth)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
-        context.DrawEllipse(null, borderPen, new Point(cx, cy), radius + borderWidth / 2.0, radius + borderWidth / 2.0);
+        DrawBorder(context, new Point(cx, cy), radius, borderWidth);
 
         DrawTicks(context, cx, cy, radius);
 
@@ -485,8 +561,8 @@ public class ClockControl : Control
 
         DrawNumbers(context, cx, cy, radius, now.Hour);
 
-        DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, Brushes.White);
-        DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, Brushes.White);
+        DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, _hourHandBrush ?? Brushes.White);
+        DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, _minuteHandBrush ?? Brushes.White);
 
         if (_secondHandVisible && _secondHandBrush is not null)
         {
@@ -500,9 +576,30 @@ public class ClockControl : Control
             context.DrawLine(secondPen, secondStart, secondEnd);
         }
 
-        context.DrawEllipse(Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
+        context.DrawEllipse(_numberBrush ?? Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
 
         DrawResizeGrip(context, cx, cy, radius);
+    }
+
+    private void DrawBorder(DrawingContext context, Point center, double radius, double borderWidth)
+    {
+        var outer = radius + borderWidth;
+        var baseColor = (_borderBrush as SolidColorBrush)?.Color ?? Colors.Black;
+
+        context.DrawEllipse(_borderBrush ?? Brushes.Black, null, center, outer, outer);
+        context.DrawEllipse(_faceBrush ?? Brushes.White, null, center, radius, radius);
+
+        for (int i = 1; i <= 6; i++)
+        {
+            var t = i / 6.0;
+            var r = outer + borderWidth * 0.3 * t;
+            var a = (byte)(120 * (1.0 - t));
+            var pen = new Pen(new SolidColorBrush(Color.FromArgb(a, baseColor.R, baseColor.G, baseColor.B)), 1.5)
+            {
+                LineCap = PenLineCap.Round
+            };
+            context.DrawEllipse(null, pen, center, r, r);
+        }
     }
 
     private (double cx, double cy, double radius) GetClockMetrics()
@@ -526,9 +623,9 @@ public class ClockControl : Control
         var center = GetResizeGripCenter(cx, cy, radius);
         var gripRadius = radius * 0.06;
 
-        context.DrawEllipse(new SolidColorBrush(Color.Parse("#33FFFFFF")), null, center, gripRadius, gripRadius);
+        context.DrawEllipse(_gripBrush ?? new SolidColorBrush(Color.Parse("#33FFFFFF")), null, center, gripRadius, gripRadius);
 
-        var pen = new Pen(Brushes.White, radius * 0.0075)
+        var pen = new Pen(_numberBrush ?? Brushes.White, radius * 0.0075)
         {
             LineCap = PenLineCap.Round,
             LineJoin = PenLineJoin.Round
@@ -545,11 +642,13 @@ public class ClockControl : Control
 
     private void DrawTicks(DrawingContext context, double cx, double cy, double radius)
     {
-        var minuteTickPen = new Pen(new SolidColorBrush(Color.Parse("#99FFFFFF")), radius * 0.003)
+        var tickColor = (_tickBrush as SolidColorBrush)?.Color ?? Colors.White;
+        var minuteColor = Color.FromArgb((byte)(tickColor.A * 0.6), tickColor.R, tickColor.G, tickColor.B);
+        var minuteTickPen = new Pen(new SolidColorBrush(minuteColor), radius * 0.003)
         {
             LineCap = PenLineCap.Round
         };
-        var hourTickPen = new Pen(new SolidColorBrush(Color.Parse("#DDFFFFFF")), radius * 0.006)
+        var hourTickPen = new Pen(new SolidColorBrush(tickColor), radius * 0.006)
         {
             LineCap = PenLineCap.Round
         };
@@ -557,8 +656,8 @@ public class ClockControl : Control
         for (int m = 0; m < 60; m++)
         {
             var isHour = m % 5 == 0;
-            var innerR = radius * (isHour ? 0.895 : 0.955);
-            var outerR = radius * 0.99;
+            var innerR = radius * (isHour ? 0.86 : 0.91);
+            var outerR = radius * 0.95;
             var angle = m * Math.PI / 30.0;
             var x1 = cx + innerR * Math.Sin(angle);
             var y1 = cy - innerR * Math.Cos(angle);
@@ -570,9 +669,9 @@ public class ClockControl : Control
 
     private void DrawNumbers(DrawingContext context, double cx, double cy, double radius, int currentHour)
     {
-        var numberRadius = radius * 0.76;
-        var fontSize = radius * 0.17;
-        var typeface = new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Bold);
+        var numberRadius = radius * 0.68;
+        var fontSize = radius * 0.15;
+        var typeface = new Typeface(_numberFont, FontStyle.Normal, FontWeight.Bold);
         var isAfternoon = currentHour > 12;
 
         for (int i = 1; i <= 12; i++)
@@ -582,7 +681,7 @@ public class ClockControl : Control
             var y = cy - numberRadius * Math.Cos(angle);
             var value = isAfternoon ? i + 12 : i;
             var text = value.ToString(CultureInfo.InvariantCulture);
-            var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, Brushes.White);
+            var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, _numberBrush ?? Brushes.White);
             var origin = new Point(x - ft.Width / 2.0, y - ft.Height / 2.0);
             context.DrawText(ft, origin);
         }
