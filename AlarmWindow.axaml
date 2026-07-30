@@ -17,35 +17,32 @@
       <Button x:Name="DeleteButton" Content="Löschen" Foreground="White" Background="#FF555555" ClickMode="Press" />
     </StackPanel>
     <Grid Grid.Row="3" x:Name="EditPanel" IsVisible="False" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
-      <TextBlock Grid.Row="0" Text="Zeit:" VerticalAlignment="Top" Margin="0,8,10,0" />
-      <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Vertical" Spacing="5">
-        <TextBlock x:Name="TimeLabel" FontSize="20" Foreground="White" />
-        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
-          <local:DigitSpinner x:Name="HourTensSpinner" />
-          <local:DigitSpinner x:Name="HourOnesSpinner" />
-          <TextBlock Text=":" VerticalAlignment="Top" FontSize="22" Foreground="White" Margin="0,4,0,0" />
-          <local:DigitSpinner x:Name="MinuteTensSpinner" />
-          <local:DigitSpinner x:Name="MinuteOnesSpinner" />
-        </StackPanel>
+      <TextBlock Grid.Row="0" Text="Zeit:" VerticalAlignment="Top" Margin="0,0,10,0" />
+      <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+        <local:DigitSpinner x:Name="HourTensSpinner" />
+        <local:DigitSpinner x:Name="HourOnesSpinner" />
+        <TextBlock Text=":" VerticalAlignment="Top" FontSize="22" Foreground="White" Margin="0,4,0,0" />
+        <local:DigitSpinner x:Name="MinuteTensSpinner" />
+        <local:DigitSpinner x:Name="MinuteOnesSpinner" />
       </StackPanel>
 
       <TextBlock Grid.Row="1" Text="Tage:" VerticalAlignment="Center" Margin="0,10,10,0" />
-      <UniformGrid Grid.Row="1" Grid.Column="1" Columns="7" Margin="0,10,0,0" x:Name="DaysGrid" HorizontalAlignment="Stretch">
-        <CheckBox x:Name="MoCheck" Content="Mo" Foreground="White" Padding="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" />
-        <CheckBox x:Name="DiCheck" Content="Di" Foreground="White" Padding="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" />
-        <CheckBox x:Name="MiCheck" Content="Mi" Foreground="White" Padding="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" />
-        <CheckBox x:Name="DoCheck" Content="Do" Foreground="White" Padding="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" />
-        <CheckBox x:Name="FrCheck" Content="Fr" Foreground="White" Padding="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" />
-        <CheckBox x:Name="SaCheck" Content="Sa" Foreground="White" Padding="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" />
-        <CheckBox x:Name="SoCheck" Content="So" Foreground="White" Padding="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" />
-      </UniformGrid>
+      <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0" x:Name="DaysGrid" HorizontalAlignment="Right">
+        <CheckBox x:Name="MoCheck" Content="Mo" Foreground="White" Padding="2,0,0,0" />
+        <CheckBox x:Name="DiCheck" Content="Di" Foreground="White" Padding="2,0,0,0" />
+        <CheckBox x:Name="MiCheck" Content="Mi" Foreground="White" Padding="2,0,0,0" />
+        <CheckBox x:Name="DoCheck" Content="Do" Foreground="White" Padding="2,0,0,0" />
+        <CheckBox x:Name="FrCheck" Content="Fr" Foreground="White" Padding="2,0,0,0" />
+        <CheckBox x:Name="SaCheck" Content="Sa" Foreground="White" Padding="2,0,0,0" />
+        <CheckBox x:Name="SoCheck" Content="So" Foreground="White" Padding="2,0,0,0" />
+      </StackPanel>
 
       <TextBlock Grid.Row="2" Text="Beschreibung:" VerticalAlignment="Center" Margin="0,10,10,0" />
-      <TextBox Grid.Row="2" Grid.Column="1" x:Name="DescriptionBox" Margin="0,10,0,0" Watermark="z. B. Mittagspause" Foreground="White" Background="#FF555555" CaretBrush="White" HorizontalAlignment="Stretch" />
+      <TextBox Grid.Row="2" Grid.Column="1" x:Name="DescriptionBox" Margin="0,10,0,0" Watermark="z. B. Mittagspause" Foreground="White" Background="#FF555555" CaretBrush="White" />
 
       <CheckBox Grid.Row="3" Grid.Column="1" x:Name="EnabledCheck" Content="Aktiv" Foreground="White" Margin="0,10,0,0" />
 
-      <Button Grid.Row="4" Grid.Column="1" x:Name="SaveButton" Content="Speichern" HorizontalAlignment="Right" Margin="0,15,0,0" Foreground="White" Background="#FF555555" ClickMode="Press" />
+      <Button Grid.Row="4" Grid.Column="1" x:Name="SaveButton" Content="Speichern" HorizontalAlignment="Right" Margin="0,15,0,0" Foreground="White" Background="#FF555555" ClickMode="Press" HorizontalContentAlignment="Center" />
     </Grid>
   </Grid>
 </Window>

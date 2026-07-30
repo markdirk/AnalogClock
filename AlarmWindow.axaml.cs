@@ -222,13 +222,11 @@ public partial class AlarmWindow : Window
         _dayChecks[4].IsChecked = alarm.Friday;
         _dayChecks[5].IsChecked = alarm.Saturday;
         _dayChecks[6].IsChecked = alarm.Sunday;
-        UpdateTimeLabel();
     }
 
     private void OnDigitChanged()
     {
         UpdateLimits();
-        UpdateTimeLabel();
     }
 
     private void UpdateLimits()
@@ -237,13 +235,6 @@ public partial class AlarmWindow : Window
         HourOnesSpinner.Maximum = HourTensSpinner.Value == 2 ? 3 : 9;
         MinuteTensSpinner.Maximum = 5;
         MinuteOnesSpinner.Maximum = 9;
-    }
-
-    private void UpdateTimeLabel()
-    {
-        var hour = HourTensSpinner.Value * 10 + HourOnesSpinner.Value;
-        var minute = MinuteTensSpinner.Value * 10 + MinuteOnesSpinner.Value;
-        TimeLabel!.Text = $"{hour:D2}:{minute:D2}";
     }
 
     private void UpdateAlarmFromControls(Alarm alarm)
