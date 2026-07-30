@@ -552,7 +552,7 @@ public class ClockControl : Control
         var hourAngle = totalHours * Math.PI / 6.0;
         var minuteAngle = totalMinutes * Math.PI / 30.0;
 
-        var hourLength = radius * 0.5;
+        var hourLength = radius * 0.64;
         var minuteLength = radius * 0.78;
         var minuteWidth = hourWidth / 1.5;
 
@@ -582,21 +582,28 @@ public class ClockControl : Control
     {
         var outer = radius + borderWidth;
         var baseColor = (_borderBrush as SolidColorBrush)?.Color ?? Colors.Black;
+        var shadowColor = DarkenColor(baseColor, 0.25);
+        var midColor = LightenColor(baseColor, 0.35);
+        var lightColor = LightenColor(baseColor, 0.75);
 
-        context.DrawEllipse(_borderBrush ?? Brushes.Black, null, center, outer, outer);
-        context.DrawEllipse(_faceBrush ?? Brushes.White, null, center, radius, radius);
-
-        for (int i = 1; i <= 6; i++)
+        var brush = new ConicGradientBrush
         {
-            var t = i / 6.0;
-            var r = outer + borderWidth * 0.3 * t;
-            var a = (byte)(120 * (1.0 - t));
-            var pen = new Pen(new SolidColorBrush(Color.FromArgb(a, baseColor.R, baseColor.G, baseColor.B)), 1.5)
+            Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+            Angle = 135,
+            GradientStops =
             {
-                LineCap = PenLineCap.Round
-            };
-            context.DrawEllipse(null, pen, center, r, r);
-        }
+                new GradientStop(shadowColor, 0.00),
+                new GradientStop(baseColor, 0.20),
+                new GradientStop(midColor, 0.35),
+                new GradientStop(lightColor, 0.50),
+                new GradientStop(midColor, 0.65),
+                new GradientStop(baseColor, 0.80),
+                new GradientStop(shadowColor, 1.00)
+            }
+        };
+
+        context.DrawEllipse(brush, null, center, outer, outer);
+        context.DrawEllipse(_faceBrush ?? Brushes.White, null, center, radius, radius);
     }
 
     private (double cx, double cy, double radius) GetClockMetrics()
@@ -666,7 +673,7 @@ public class ClockControl : Control
 
     private void DrawNumbers(DrawingContext context, double cx, double cy, double radius, int currentHour)
     {
-        var numberRadius = radius * 0.68;
+        var numberRadius = radius * 0.73;
         var fontSize = radius * 0.15;
         var typeface = new Typeface(_numberFont, FontStyle.Normal, FontWeight.Bold);
         var isAfternoon = currentHour > 12;
