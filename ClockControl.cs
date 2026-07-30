@@ -575,7 +575,7 @@ public class ClockControl : Control
             context.DrawLine(secondPen, secondStart, secondEnd);
         }
 
-        context.DrawEllipse(_numberBrush ?? Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
+        context.DrawEllipse(_hourHandBrush ?? Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
 
         DrawResizeGrip(context, cx, cy, radius);
     }
