@@ -12,9 +12,9 @@ public class ClockSettings
     public double? Top { get; set; }
     public double Width { get; set; } = 400;
     public double Height { get; set; } = 400;
-    public string SecondHandState { get; set; } = "White";
-    public ClockTheme? CurrentTheme { get; set; }
-    public List<ClockTheme> Themes { get; set; } = new();
+    public string SecondHandState { get; set; } = "Red";
+    public ClockTheme CurrentTheme { get; set; } = new();
+    public List<ClockTheme> Themes { get; set; } = new() { new() };
     public ObservableCollection<Alarm> Alarms { get; set; } = new();
 }
 

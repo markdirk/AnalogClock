@@ -197,30 +197,19 @@ public class ClockControl : Control
 
     private void EnsureTheme()
     {
-        if (_settings.CurrentTheme is null)
+        _settings.CurrentTheme ??= CreateDefaultTheme();
+        _settings.CurrentTheme.SecondHandVisible = _settings.SecondHandState != "Hidden";
+        _settings.CurrentTheme.SecondHandColor = _settings.SecondHandState == "Red" ? "#FF800020" : "#FFFFFFFF";
+
+        if (_settings.Themes.Count == 0)
         {
-            _settings.CurrentTheme = CreateDefaultTheme();
-            _settings.CurrentTheme.SecondHandVisible = _settings.SecondHandState != "Hidden";
-            _settings.CurrentTheme.SecondHandColor = _settings.SecondHandState == "Red" ? "#FF800020" : "#FFFFFFFF";
+            _settings.Themes.Add(_settings.CurrentTheme.Clone());
         }
     }
 
     private ClockTheme CreateDefaultTheme()
     {
-        return new ClockTheme
-        {
-            Name = "Standard",
-            FaceColor = "#FF2D2D2D",
-            BorderColor = "#FF000000",
-            NumberColor = "#FFFFFFFF",
-            HourHandColor = "#FFFFFFFF",
-            MinuteHandColor = "#FFFFFFFF",
-            SecondHandColor = "#FFFFFFFF",
-            TickColor = "#DDFFFFFF",
-            GripColor = "#33FFFFFF",
-            FontName = string.Empty,
-            SecondHandVisible = true
-        };
+        return new ClockTheme();
     }
 
     private void ApplyTheme()
