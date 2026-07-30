@@ -15,7 +15,6 @@ public class ClockControl : Control
     private AlarmWindow? _alarmWindow;
     private ThemeWindow? _themeWindow;
     private DispatcherTimer? _timer;
-    private ContextMenu? _contextMenu;
     private ClockSettings _settings = new();
 
     private IBrush? _faceBrush;
@@ -73,6 +72,8 @@ public class ClockControl : Control
             CheckAlarms();
         };
         _timer.Start();
+
+        this.ContextMenu = BuildContextMenu();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -89,7 +90,7 @@ public class ClockControl : Control
         }
 
         _window = null;
-        _contextMenu = null;
+        this.ContextMenu = null;
     }
 
     private void OnWindowOpened(object? sender, EventArgs e)
@@ -143,12 +144,13 @@ public class ClockControl : Control
 
         var themeItem = new MenuItem { Header = "Theme" };
         var themesSub = new MenuItem { Header = "Laden" };
-        themesSub.SubmenuOpened += (_, _) => RebuildThemeMenu(themesSub);
         themeItem.Items.Add(themesSub);
         themeItem.Items.Add(CreateMenuItem("Bearbeiten...", OpenThemeWindow));
         menu.Items.Add(themeItem);
 
         menu.Items.Add(CreateMenuItem("Beenden", ExitApplication));
+
+        menu.Opening += (_, _) => RebuildThemeMenu(themesSub);
 
         return menu;
     }
@@ -158,7 +160,7 @@ public class ClockControl : Control
         var item = new MenuItem { Header = header };
         item.Click += (_, _) =>
         {
-            _contextMenu?.Close();
+            this.ContextMenu?.Close();
             action();
         };
         return item;
@@ -366,11 +368,6 @@ public class ClockControl : Control
 
         if (props.IsRightButtonPressed)
         {
-            e.Handled = true;
-            _contextMenu = BuildContextMenu();
-            this.ContextMenu = _contextMenu;
-            _contextMenu.Placement = PlacementMode.Pointer;
-            _contextMenu.Open();
             return;
         }
 
