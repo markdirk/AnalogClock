@@ -9,7 +9,8 @@ namespace AnalogClock;
 public partial class AlarmWindow : Window
 {
     private ClockSettings _settings = new();
-    private bool _updating;
+    private Alarm? _currentAlarm;
+    private bool _isNew;
     private CheckBox[] _dayChecks = Array.Empty<CheckBox>();
 
     public AlarmWindow()
@@ -35,91 +36,94 @@ public partial class AlarmWindow : Window
         DeleteButton.Click += DeleteButton_Click;
         SaveButton.Click += SaveButton_Click;
 
-        HourUpDown.ValueChanged += EditControl_Changed;
-        MinuteUpDown.ValueChanged += EditControl_Changed;
-        DescriptionBox.TextChanged += EditControl_Changed;
-        EnabledCheck.IsCheckedChanged += EditControl_Changed;
-        foreach (var check in _dayChecks)
-        {
-            check.IsCheckedChanged += EditControl_Changed;
-        }
-
         Closing += (_, _) => SettingsService.Save(_settings);
     }
 
     private void AddButton_Click(object? sender, RoutedEventArgs e)
     {
-        var now = DateTime.Now;
-        var alarm = new Alarm
+        var future = DateTime.Now.AddMinutes(1);
+        _currentAlarm = new Alarm
         {
-            Hour = now.Hour,
-            Minute = now.Minute,
-            Description = "Wecker"
+            Hour = future.Hour,
+            Minute = future.Minute,
+            Description = "Wecker",
+            Enabled = false
         };
-        _settings.Alarms.Add(alarm);
-        AlarmList.SelectedItem = alarm;
-        SettingsService.Save(_settings);
+        _isNew = true;
+
+        AlarmList.SelectedItem = null;
+        LoadControls(_currentAlarm);
+        EnabledCheck.IsChecked = true;
+        EditPanel.IsVisible = true;
     }
 
     private void DeleteButton_Click(object? sender, RoutedEventArgs e)
     {
-        if (AlarmList.SelectedItem is Alarm alarm)
-        {
-            _settings.Alarms.Remove(alarm);
-            EditPanel.IsVisible = false;
-            SettingsService.Save(_settings);
-        }
-    }
-
-    private void SaveButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (AlarmList.SelectedItem is Alarm alarm)
-        {
-            UpdateAlarmFromControls(alarm);
-            SettingsService.Save(_settings);
-        }
-    }
-
-    private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        _updating = true;
-        try
-        {
-            if (AlarmList.SelectedItem is Alarm alarm)
-            {
-                HourUpDown.Value = alarm.Hour;
-                MinuteUpDown.Value = alarm.Minute;
-                DescriptionBox.Text = alarm.Description;
-                EnabledCheck.IsChecked = alarm.Enabled;
-                _dayChecks[0].IsChecked = alarm.Monday;
-                _dayChecks[1].IsChecked = alarm.Tuesday;
-                _dayChecks[2].IsChecked = alarm.Wednesday;
-                _dayChecks[3].IsChecked = alarm.Thursday;
-                _dayChecks[4].IsChecked = alarm.Friday;
-                _dayChecks[5].IsChecked = alarm.Saturday;
-                _dayChecks[6].IsChecked = alarm.Sunday;
-                EditPanel.IsVisible = true;
-            }
-            else
-            {
-                EditPanel.IsVisible = false;
-            }
-        }
-        finally
-        {
-            _updating = false;
-        }
-    }
-
-    private void EditControl_Changed(object? sender, EventArgs e)
-    {
-        if (_updating || AlarmList.SelectedItem is not Alarm alarm)
+        if (_currentAlarm is null)
         {
             return;
         }
 
-        UpdateAlarmFromControls(alarm);
+        if (!_isNew)
+        {
+            _settings.Alarms.Remove(_currentAlarm);
+            AlarmList.SelectedItem = null;
+        }
+
+        _currentAlarm = null;
+        _isNew = false;
+        EditPanel.IsVisible = false;
         SettingsService.Save(_settings);
+    }
+
+    private void SaveButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_currentAlarm is null)
+        {
+            return;
+        }
+
+        UpdateAlarmFromControls(_currentAlarm);
+        if (_isNew)
+        {
+            _settings.Alarms.Add(_currentAlarm);
+            _isNew = false;
+            AlarmList.SelectedItem = _currentAlarm;
+        }
+
+        SettingsService.Save(_settings);
+    }
+
+    private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (AlarmList.SelectedItem is Alarm alarm)
+        {
+            _currentAlarm = alarm;
+            _isNew = false;
+            LoadControls(alarm);
+            EditPanel.IsVisible = true;
+        }
+        else
+        {
+            _currentAlarm = null;
+            _isNew = false;
+            EditPanel.IsVisible = false;
+        }
+    }
+
+    private void LoadControls(Alarm alarm)
+    {
+            HourUpDown.Value = alarm.Hour;
+            MinuteUpDown.Value = alarm.Minute;
+            DescriptionBox.Text = alarm.Description;
+            EnabledCheck.IsChecked = alarm.Enabled;
+            _dayChecks[0].IsChecked = alarm.Monday;
+            _dayChecks[1].IsChecked = alarm.Tuesday;
+            _dayChecks[2].IsChecked = alarm.Wednesday;
+            _dayChecks[3].IsChecked = alarm.Thursday;
+            _dayChecks[4].IsChecked = alarm.Friday;
+            _dayChecks[5].IsChecked = alarm.Saturday;
+            _dayChecks[6].IsChecked = alarm.Sunday;
     }
 
     private void UpdateAlarmFromControls(Alarm alarm)
@@ -136,5 +140,4 @@ public partial class AlarmWindow : Window
         alarm.Saturday = _dayChecks[5].IsChecked ?? false;
         alarm.Sunday = _dayChecks[6].IsChecked ?? false;
     }
-
 }

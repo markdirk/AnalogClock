@@ -5,8 +5,8 @@ namespace AnalogClock;
 
 public class ClockSettings
 {
-    public double Left { get; set; } = double.NaN;
-    public double Top { get; set; } = double.NaN;
+    public double? Left { get; set; }
+    public double? Top { get; set; }
     public double Width { get; set; } = 400;
     public double Height { get; set; } = 400;
     public string SecondHandState { get; set; } = "White";

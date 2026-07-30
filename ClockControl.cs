@@ -98,9 +98,9 @@ public class ClockControl : Control
             _window.Height = _settings.Height;
         }
 
-        if (!double.IsNaN(_settings.Left) && !double.IsNaN(_settings.Top))
+        if (_settings.Left.HasValue && _settings.Top.HasValue)
         {
-            _window.Position = new PixelPoint((int)_settings.Left, (int)_settings.Top);
+            _window.Position = new PixelPoint((int)_settings.Left.Value, (int)_settings.Top.Value);
         }
     }
 
