@@ -520,7 +520,7 @@ public class ClockControl : Control
         var minHalf = Math.Min(w, h) / 2.0;
         var radius = minHalf * 0.80;
         var hourWidth = radius * 0.08;
-        var borderWidth = radius * 0.08;
+        var borderWidth = radius * 0.10;
 
         var shadowSpread = radius * 0.20;
         const int shadowSteps = 25;
@@ -534,6 +534,8 @@ public class ClockControl : Control
             var a = (byte)(maxLayerAlpha * (1.0 - t));
             context.DrawEllipse(new SolidColorBrush(Color.FromArgb(a, 0, 0, 0)), null, new Point(cx, cy), r, r);
         }
+
+        context.DrawEllipse(_faceBrush ?? new SolidColorBrush(Color.Parse("#FF2D2D2D")), null, new Point(cx, cy), radius, radius);
 
         DrawBorder(context, new Point(cx, cy), radius, borderWidth);
 
@@ -552,7 +554,7 @@ public class ClockControl : Control
         var hourAngle = totalHours * Math.PI / 6.0;
         var minuteAngle = totalMinutes * Math.PI / 30.0;
 
-        var hourLength = radius * 0.61;
+        var hourLength = radius * 0.58;
         var minuteLength = radius * 0.78;
         var minuteWidth = hourWidth / 1.5;
 
@@ -581,24 +583,27 @@ public class ClockControl : Control
     private void DrawBorder(DrawingContext context, Point center, double radius, double borderWidth)
     {
         var outer = radius + borderWidth;
+        var rimCenter = radius + borderWidth / 2.0;
         var baseColor = (_borderBrush as SolidColorBrush)?.Color ?? Colors.Black;
-        var shadowColor = DarkenColor(baseColor, 0.40);
-        var lightColor = LightenColor(baseColor, 0.70);
+        var shadowColor = DarkenColor(baseColor, 0.45);
+        var lightColor = LightenColor(baseColor, 0.65);
 
-        var brush = new LinearGradientBrush
+        var rimBrush = new LinearGradientBrush
         {
             StartPoint = new RelativePoint(0.0, 0.0, RelativeUnit.Relative),
             EndPoint = new RelativePoint(1.0, 1.0, RelativeUnit.Relative),
             GradientStops =
             {
                 new GradientStop(lightColor, 0.0),
-                new GradientStop(baseColor, 0.45),
+                new GradientStop(baseColor, 0.40),
                 new GradientStop(shadowColor, 1.0)
             }
         };
 
-        context.DrawEllipse(brush, null, center, outer, outer);
-        context.DrawEllipse(_faceBrush ?? Brushes.White, null, center, radius, radius);
+        context.DrawEllipse(null, new Pen(rimBrush, borderWidth) { LineCap = PenLineCap.Round }, center, rimCenter, rimCenter);
+
+        var innerLineColor = Color.FromArgb((byte)(shadowColor.A / 2 + 70), shadowColor.R, shadowColor.G, shadowColor.B);
+        context.DrawEllipse(null, new Pen(new SolidColorBrush(innerLineColor), borderWidth * 0.22) { LineCap = PenLineCap.Round }, center, radius + borderWidth * 0.12, radius + borderWidth * 0.12);
     }
 
     private (double cx, double cy, double radius) GetClockMetrics()
