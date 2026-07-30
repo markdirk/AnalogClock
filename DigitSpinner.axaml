@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AnalogClock.DigitSpinner"
+             Width="42">
+  <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Spacing="3">
+    <TextBlock x:Name="DigitText" HorizontalAlignment="Center" FontSize="24" Foreground="White" />
+    <Border x:Name="UpButton" Background="#FF555555" Padding="10,4" Cursor="Hand" HorizontalAlignment="Center">
+      <TextBlock Text="▲" FontSize="10" Foreground="White" HorizontalAlignment="Center" />
+    </Border>
+    <Border x:Name="DownButton" Background="#FF555555" Padding="10,4" Cursor="Hand" HorizontalAlignment="Center">
+      <TextBlock Text="▼" FontSize="10" Foreground="White" HorizontalAlignment="Center" />
+    </Border>
+  </StackPanel>
+</UserControl>

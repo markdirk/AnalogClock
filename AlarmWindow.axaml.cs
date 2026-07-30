@@ -105,8 +105,10 @@ public partial class AlarmWindow : Window
         DeleteButton.Click += DeleteButton_Click;
         SaveButton.Click += SaveButton_Click;
 
-        HourUpDown.ValueChanged += (_, _) => UpdateTimeLabel();
-        MinuteUpDown.ValueChanged += (_, _) => UpdateTimeLabel();
+        HourTensSpinner.ValueChanged += (_, _) => OnDigitChanged();
+        HourOnesSpinner.ValueChanged += (_, _) => OnDigitChanged();
+        MinuteTensSpinner.ValueChanged += (_, _) => OnDigitChanged();
+        MinuteOnesSpinner.ValueChanged += (_, _) => OnDigitChanged();
 
         Activated += OnActivated;
         Closing += (_, _) => SettingsService.Save(_settings);
@@ -206,8 +208,11 @@ public partial class AlarmWindow : Window
 
     private void LoadControls(Alarm alarm)
     {
-        HourUpDown.Value = alarm.Hour;
-        MinuteUpDown.Value = alarm.Minute;
+        HourTensSpinner.Value = alarm.Hour / 10;
+        HourOnesSpinner.Value = alarm.Hour % 10;
+        MinuteTensSpinner.Value = alarm.Minute / 10;
+        MinuteOnesSpinner.Value = alarm.Minute % 10;
+        UpdateLimits();
         DescriptionBox.Text = alarm.Description;
         EnabledCheck.IsChecked = alarm.Enabled;
         _dayChecks[0].IsChecked = alarm.Monday;
@@ -220,17 +225,31 @@ public partial class AlarmWindow : Window
         UpdateTimeLabel();
     }
 
+    private void OnDigitChanged()
+    {
+        UpdateLimits();
+        UpdateTimeLabel();
+    }
+
+    private void UpdateLimits()
+    {
+        HourTensSpinner.Maximum = 2;
+        HourOnesSpinner.Maximum = HourTensSpinner.Value == 2 ? 3 : 9;
+        MinuteTensSpinner.Maximum = 5;
+        MinuteOnesSpinner.Maximum = 9;
+    }
+
     private void UpdateTimeLabel()
     {
-        var hour = (int)(HourUpDown.Value ?? 0);
-        var minute = (int)(MinuteUpDown.Value ?? 0);
+        var hour = HourTensSpinner.Value * 10 + HourOnesSpinner.Value;
+        var minute = MinuteTensSpinner.Value * 10 + MinuteOnesSpinner.Value;
         TimeLabel!.Text = $"{hour:D2}:{minute:D2}";
     }
 
     private void UpdateAlarmFromControls(Alarm alarm)
     {
-        alarm.Hour = (int)(HourUpDown.Value ?? 0);
-        alarm.Minute = (int)(MinuteUpDown.Value ?? 0);
+        alarm.Hour = HourTensSpinner.Value * 10 + HourOnesSpinner.Value;
+        alarm.Minute = MinuteTensSpinner.Value * 10 + MinuteOnesSpinner.Value;
         alarm.Description = DescriptionBox.Text ?? string.Empty;
         alarm.Enabled = EnabledCheck.IsChecked ?? false;
         alarm.Monday = _dayChecks[0].IsChecked ?? false;
