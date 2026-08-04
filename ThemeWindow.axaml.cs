@@ -28,7 +28,9 @@ public partial class ThemeWindow : Window
     private void Setup()
     {
         var fontNames = FontManager.Current.SystemFonts.Select(f => f.Name).OrderBy(n => n).ToList();
-        FontCombo.ItemsSource = fontNames;
+        NumberFontCombo.ItemsSource = fontNames;
+        DateFontCombo.ItemsSource = fontNames;
+        TimeFontCombo.ItemsSource = fontNames;
 
         ThemeCombo.ItemsSource = _settings.Themes;
         ThemeCombo.DisplayMemberBinding = new Binding("Name");
@@ -39,6 +41,15 @@ public partial class ThemeWindow : Window
         }
 
         LoadTheme(_settings.CurrentTheme ?? new ClockTheme { Name = "Standard" });
+
+        NumberFontCombo.SelectionChanged += (_, _) => PreviewTheme();
+        DateFontCombo.SelectionChanged += (_, _) => PreviewTheme();
+        TimeFontCombo.SelectionChanged += (_, _) => PreviewTheme();
+        NumberFontScale.ValueChanged += (_, _) => PreviewTheme();
+        DateFontScale.ValueChanged += (_, _) => PreviewTheme();
+        TimeFontScale.ValueChanged += (_, _) => PreviewTheme();
+        DateColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        TimeColorPicker.ColorChanged += (_, _) => PreviewTheme();
 
         ThemeCombo.SelectionChanged += (_, _) =>
         {
@@ -64,10 +75,53 @@ public partial class ThemeWindow : Window
         SecondHandColorPicker.Color = ParseColor(theme.SecondHandColor) ?? Colors.White;
         TickColorPicker.Color = ParseColor(theme.TickColor) ?? Colors.White;
         GripColorPicker.Color = ParseColor(theme.GripColor) ?? Color.Parse("#33FFFFFF");
+        DateColorPicker.Color = ParseColor(theme.DateColor) ?? Colors.White;
+        TimeColorPicker.Color = ParseColor(theme.TimeColor) ?? Colors.White;
         SecondHandVisibleCheck.IsChecked = theme.SecondHandVisible;
-        FontCombo.SelectedItem = string.IsNullOrWhiteSpace(theme.FontName)
+        NumberFontCombo.SelectedItem = string.IsNullOrWhiteSpace(theme.FontName)
             ? FontManager.Current.DefaultFontFamily.Name
             : theme.FontName;
+        DateFontCombo.SelectedItem = string.IsNullOrWhiteSpace(theme.DateFontName)
+            ? FontManager.Current.DefaultFontFamily.Name
+            : theme.DateFontName;
+        TimeFontCombo.SelectedItem = string.IsNullOrWhiteSpace(theme.TimeFontName)
+            ? FontManager.Current.DefaultFontFamily.Name
+            : theme.TimeFontName;
+        NumberFontScale.Value = (decimal)theme.NumberFontScale;
+        DateFontScale.Value = (decimal)theme.DateFontScale;
+        TimeFontScale.Value = (decimal)theme.TimeFontScale;
+    }
+
+    private ClockTheme ThemeFromControls()
+    {
+        var name = NameBox.Text?.Trim() ?? "Theme";
+        return new ClockTheme
+        {
+            Name = name,
+            FaceColor = ColorToString(FaceColorPicker.Color),
+            BorderColor = ColorToString(BorderColorPicker.Color),
+            NumberColor = ColorToString(NumberColorPicker.Color),
+            HourHandColor = ColorToString(HourHandColorPicker.Color),
+            MinuteHandColor = ColorToString(MinuteHandColorPicker.Color),
+            SecondHandColor = ColorToString(SecondHandColorPicker.Color),
+            TickColor = ColorToString(TickColorPicker.Color),
+            GripColor = ColorToString(GripColorPicker.Color),
+            DateColor = ColorToString(DateColorPicker.Color),
+            TimeColor = ColorToString(TimeColorPicker.Color),
+            SecondHandVisible = SecondHandVisibleCheck.IsChecked ?? false,
+            FontName = NumberFontCombo.SelectedItem?.ToString() ?? string.Empty,
+            NumberFontScale = (double)(NumberFontScale.Value ?? 1.0m),
+            DateFontName = DateFontCombo.SelectedItem?.ToString() ?? string.Empty,
+            DateFontScale = (double)(DateFontScale.Value ?? 1.0m),
+            TimeFontName = TimeFontCombo.SelectedItem?.ToString() ?? string.Empty,
+            TimeFontScale = (double)(TimeFontScale.Value ?? 1.0m)
+        };
+    }
+
+    private void PreviewTheme()
+    {
+        _settings.CurrentTheme = ThemeFromControls();
+        _onApply();
     }
 
     private static Color? ParseColor(string color)
@@ -82,23 +136,9 @@ public partial class ThemeWindow : Window
 
     private void SaveButton_Click(object? sender, RoutedEventArgs e)
     {
-        var name = NameBox.Text?.Trim() ?? "Theme";
-        var theme = new ClockTheme
-        {
-            Name = name,
-            FaceColor = ColorToString(FaceColorPicker.Color),
-            BorderColor = ColorToString(BorderColorPicker.Color),
-            NumberColor = ColorToString(NumberColorPicker.Color),
-            HourHandColor = ColorToString(HourHandColorPicker.Color),
-            MinuteHandColor = ColorToString(MinuteHandColorPicker.Color),
-            SecondHandColor = ColorToString(SecondHandColorPicker.Color),
-            TickColor = ColorToString(TickColorPicker.Color),
-            GripColor = ColorToString(GripColorPicker.Color),
-            SecondHandVisible = SecondHandVisibleCheck.IsChecked ?? false,
-            FontName = FontCombo.SelectedItem?.ToString() ?? string.Empty
-        };
+        var theme = ThemeFromControls();
 
-        var existing = _settings.Themes.Find(t => t.Name == name);
+        var existing = _settings.Themes.Find(t => t.Name == theme.Name);
         if (existing is not null)
         {
             _settings.Themes.Remove(existing);

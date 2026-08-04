@@ -12,6 +12,13 @@ public class ClockTheme
     public string TickColor { get; set; } = "#ddffffff";
     public string GripColor { get; set; } = "#33ffffff";
     public string FontName { get; set; } = "Segoe UI";
+    public double NumberFontScale { get; set; } = 1.0;
+    public string DateColor { get; set; } = "#ffb0b0b0";
+    public string DateFontName { get; set; } = "Segoe UI";
+    public double DateFontScale { get; set; } = 1.0;
+    public string TimeColor { get; set; } = "#ffb0b0b0";
+    public string TimeFontName { get; set; } = "Segoe UI";
+    public double TimeFontScale { get; set; } = 1.0;
     public bool SecondHandVisible { get; set; } = true;
 
     public ClockTheme Clone()

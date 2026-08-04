@@ -25,8 +25,15 @@ public class ClockControl : Control
     private IBrush? _tickBrush;
     private IBrush? _gripBrush;
     private IBrush? _secondHandBrush;
+    private IBrush? _dateBrush;
+    private IBrush? _timeBrush;
     private bool _secondHandVisible;
     private FontFamily _numberFont = FontFamily.Default;
+    private FontFamily _dateFont = new("Segoe UI");
+    private FontFamily _timeFont = new("Segoe UI");
+    private double _numberFontScale = 1.0;
+    private double _dateFontScale = 1.0;
+    private double _timeFontScale = 1.0;
 
     private const double TaperRatio = 0.95;
 
@@ -224,15 +231,32 @@ public class ClockControl : Control
         _gripBrush = ParseBrush(theme.GripColor);
         _secondHandVisible = theme.SecondHandVisible;
         _secondHandBrush = ParseBrush(theme.SecondHandColor);
+        _dateBrush = ParseBrush(theme.DateColor);
+        _timeBrush = ParseBrush(theme.TimeColor);
 
-        try
+        _numberFont = ParseFont(theme.FontName);
+        _dateFont = ParseFont(theme.DateFontName);
+        _timeFont = ParseFont(theme.TimeFontName);
+        _numberFontScale = theme.NumberFontScale;
+        _dateFontScale = theme.DateFontScale;
+        _timeFontScale = theme.TimeFontScale;
+    }
+
+    private static FontFamily ParseFont(string? name)
+    {
+        if (!string.IsNullOrWhiteSpace(name))
         {
-            _numberFont = string.IsNullOrWhiteSpace(theme.FontName) ? FontFamily.Default : new FontFamily(theme.FontName);
+            try
+            {
+                return new FontFamily(name);
+            }
+            catch
+            {
+                // fall through
+            }
         }
-        catch
-        {
-            _numberFont = FontFamily.Default;
-        }
+
+        return FontFamily.Default;
     }
 
     private static IBrush ParseBrush(string? color)
@@ -566,6 +590,9 @@ public class ClockControl : Control
 
         context.DrawEllipse(_hourHandBrush ?? Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
 
+        DrawTime(context, cx, cy, radius, now);
+        DrawDate(context, cx, cy, radius, now);
+
         DrawResizeGrip(context, cx, cy, radius);
     }
 
@@ -663,7 +690,7 @@ public class ClockControl : Control
     private void DrawNumbers(DrawingContext context, double cx, double cy, double radius, int currentHour)
     {
         var numberRadius = radius * 0.73;
-        var fontSize = radius * 0.15;
+        var fontSize = radius * 0.15 * _numberFontScale;
         var typeface = new Typeface(_numberFont, FontStyle.Normal, FontWeight.Bold);
         var isAfternoon = currentHour > 12;
 
@@ -678,6 +705,38 @@ public class ClockControl : Control
             var origin = new Point(x - ft.Width / 2.0, y - ft.Height / 2.0);
             context.DrawText(ft, origin);
         }
+    }
+
+    private void DrawTime(DrawingContext context, double cx, double cy, double radius, DateTime now)
+    {
+        var fontSize = radius * 0.10 * _timeFontScale;
+        var typeface = new Typeface(_timeFont, FontStyle.Normal, FontWeight.Bold);
+        var text = now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, _timeBrush ?? Brushes.White);
+        var origin = new Point(cx - ft.Width / 2.0, cy - radius * 0.28 - ft.Height / 2.0);
+        context.DrawText(ft, origin);
+    }
+
+    private void DrawDate(DrawingContext context, double cx, double cy, double radius, DateTime now)
+    {
+        var daySize = radius * 0.10 * _dateFontScale;
+        var dateSize = radius * 0.08 * _dateFontScale;
+        var dayTypeface = new Typeface(_dateFont, FontStyle.Normal, FontWeight.Bold);
+        var dateTypeface = new Typeface(_dateFont, FontStyle.Normal, FontWeight.Regular);
+
+        var de = new CultureInfo("de-DE");
+        var dayText = now.ToString("dddd", de);
+        var dateText = now.ToString("dd.MM.yyyy", de);
+
+        var dayFt = new FormattedText(dayText, de, FlowDirection.LeftToRight, dayTypeface, daySize, _dateBrush ?? Brushes.White);
+        var dateFt = new FormattedText(dateText, de, FlowDirection.LeftToRight, dateTypeface, dateSize, _dateBrush ?? Brushes.White);
+
+        var spacing = radius * 0.01;
+        var totalHeight = dayFt.Height + spacing + dateFt.Height;
+        var top = cy + radius * 0.40 - totalHeight / 2.0;
+
+        context.DrawText(dayFt, new Point(cx - dayFt.Width / 2.0, top));
+        context.DrawText(dateFt, new Point(cx - dateFt.Width / 2.0, top + dayFt.Height + spacing));
     }
 
     private void DrawHand(DrawingContext context, double cx, double cy, double angle, double length, double width, IBrush brush)
