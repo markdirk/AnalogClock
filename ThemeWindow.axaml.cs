@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -25,12 +26,14 @@ public partial class ThemeWindow : Window
         Setup();
     }
 
+    private List<FontOption> FontOptions { get; set; } = new();
+
     private void Setup()
     {
-        var fontNames = FontManager.Current.SystemFonts.Select(f => f.Name).OrderBy(n => n).ToList();
-        NumberFontCombo.ItemsSource = fontNames;
-        DateFontCombo.ItemsSource = fontNames;
-        TimeFontCombo.ItemsSource = fontNames;
+        FontOptions = BuildFontOptions();
+        NumberFontCombo.ItemsSource = FontOptions;
+        DateFontCombo.ItemsSource = FontOptions;
+        TimeFontCombo.ItemsSource = FontOptions;
 
         ThemeCombo.ItemsSource = _settings.Themes;
         ThemeCombo.DisplayMemberBinding = new Binding("Name");
@@ -48,8 +51,28 @@ public partial class ThemeWindow : Window
         NumberFontScale.ValueChanged += (_, _) => PreviewTheme();
         DateFontScale.ValueChanged += (_, _) => PreviewTheme();
         TimeFontScale.ValueChanged += (_, _) => PreviewTheme();
+        HandsAboveInfoCheck.IsCheckedChanged += (_, _) => PreviewTheme();
+
+        FaceColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        BorderColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        NumberColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        HourHandColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        MinuteHandColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        SecondHandColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        TickColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        GripColorPicker.ColorChanged += (_, _) => PreviewTheme();
         DateColorPicker.ColorChanged += (_, _) => PreviewTheme();
         TimeColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        CenterDotBorderColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        DateBoxBackgroundColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        DateBoxBorderColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        TimeBoxBackgroundColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        TimeBoxBorderColorPicker.ColorChanged += (_, _) => PreviewTheme();
+        DateBoxXOffset.ValueChanged += (_, _) => PreviewTheme();
+        DateBoxYOffset.ValueChanged += (_, _) => PreviewTheme();
+        TimeBoxXOffset.ValueChanged += (_, _) => PreviewTheme();
+        TimeBoxYOffset.ValueChanged += (_, _) => PreviewTheme();
+        SecondHandVisibleCheck.IsCheckedChanged += (_, _) => PreviewTheme();
 
         ThemeCombo.SelectionChanged += (_, _) =>
         {
@@ -62,6 +85,21 @@ public partial class ThemeWindow : Window
         SaveButton.Click += SaveButton_Click;
         DeleteButton.Click += DeleteButton_Click;
         CloseButton.Click += (_, _) => Close();
+    }
+
+    private static List<FontOption> BuildFontOptions()
+    {
+        var options = FontManager.Current.SystemFonts
+            .Select(f => new FontOption { DisplayName = f.Name, Family = f })
+            .ToList();
+
+        options.Add(new FontOption
+        {
+            DisplayName = "Digital-7 Mono",
+            Family = new FontFamily("avares://AnalogClock/Assets/Digital7Mono.ttf#Digital-7 Mono")
+        });
+
+        return options.OrderBy(f => f.DisplayName).ToList();
     }
 
     private void LoadTheme(ClockTheme theme)
@@ -77,24 +115,48 @@ public partial class ThemeWindow : Window
         GripColorPicker.Color = ParseColor(theme.GripColor) ?? Color.Parse("#33FFFFFF");
         DateColorPicker.Color = ParseColor(theme.DateColor) ?? Colors.White;
         TimeColorPicker.Color = ParseColor(theme.TimeColor) ?? Colors.White;
+        CenterDotBorderColorPicker.Color = ParseColor(theme.CenterDotBorderColor) ?? Color.Parse("#FF0D0D0D");
+        DateBoxBackgroundColorPicker.Color = ParseColor(theme.DateBoxBackgroundColor) ?? Color.Parse("#FF0D0D0D");
+        DateBoxBorderColorPicker.Color = ParseColor(theme.DateBoxBorderColor) ?? Color.Parse("#33FFFFFF");
+        TimeBoxBackgroundColorPicker.Color = ParseColor(theme.TimeBoxBackgroundColor) ?? Color.Parse("#FF0D0D0D");
+        TimeBoxBorderColorPicker.Color = ParseColor(theme.TimeBoxBorderColor) ?? Color.Parse("#33FFFFFF");
+
         SecondHandVisibleCheck.IsChecked = theme.SecondHandVisible;
-        NumberFontCombo.SelectedItem = string.IsNullOrWhiteSpace(theme.FontName)
-            ? FontManager.Current.DefaultFontFamily.Name
-            : theme.FontName;
-        DateFontCombo.SelectedItem = string.IsNullOrWhiteSpace(theme.DateFontName)
-            ? FontManager.Current.DefaultFontFamily.Name
-            : theme.DateFontName;
-        TimeFontCombo.SelectedItem = string.IsNullOrWhiteSpace(theme.TimeFontName)
-            ? FontManager.Current.DefaultFontFamily.Name
-            : theme.TimeFontName;
+        HandsAboveInfoCheck.IsChecked = theme.HandsAboveInfo;
+
+        NumberFontCombo.SelectedItem = FindFontOption(theme.FontName);
+        DateFontCombo.SelectedItem = FindFontOption(theme.DateFontName);
+        TimeFontCombo.SelectedItem = FindFontOption(theme.TimeFontName);
+
         NumberFontScale.Value = (decimal)theme.NumberFontScale;
         DateFontScale.Value = (decimal)theme.DateFontScale;
         TimeFontScale.Value = (decimal)theme.TimeFontScale;
+
+        DateBoxXOffset.Value = (decimal)theme.DateBoxXOffset;
+        DateBoxYOffset.Value = (decimal)theme.DateBoxYOffset;
+        TimeBoxXOffset.Value = (decimal)theme.TimeBoxXOffset;
+        TimeBoxYOffset.Value = (decimal)theme.TimeBoxYOffset;
+    }
+
+    private FontOption? FindFontOption(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return null;
+        }
+
+        return FontOptions.FirstOrDefault(f =>
+            string.Equals(f.DisplayName, name, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(f.Family.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
     private ClockTheme ThemeFromControls()
     {
         var name = NameBox.Text?.Trim() ?? "Theme";
+        var numberFont = NumberFontCombo.SelectedItem as FontOption;
+        var dateFont = DateFontCombo.SelectedItem as FontOption;
+        var timeFont = TimeFontCombo.SelectedItem as FontOption;
+
         return new ClockTheme
         {
             Name = name,
@@ -108,13 +170,23 @@ public partial class ThemeWindow : Window
             GripColor = ColorToString(GripColorPicker.Color),
             DateColor = ColorToString(DateColorPicker.Color),
             TimeColor = ColorToString(TimeColorPicker.Color),
+            CenterDotBorderColor = ColorToString(CenterDotBorderColorPicker.Color),
+            DateBoxBackgroundColor = ColorToString(DateBoxBackgroundColorPicker.Color),
+            DateBoxBorderColor = ColorToString(DateBoxBorderColorPicker.Color),
+            TimeBoxBackgroundColor = ColorToString(TimeBoxBackgroundColorPicker.Color),
+            TimeBoxBorderColor = ColorToString(TimeBoxBorderColorPicker.Color),
             SecondHandVisible = SecondHandVisibleCheck.IsChecked ?? false,
-            FontName = NumberFontCombo.SelectedItem?.ToString() ?? string.Empty,
+            HandsAboveInfo = HandsAboveInfoCheck.IsChecked ?? false,
+            FontName = numberFont?.DisplayName ?? string.Empty,
             NumberFontScale = (double)(NumberFontScale.Value ?? 1.0m),
-            DateFontName = DateFontCombo.SelectedItem?.ToString() ?? string.Empty,
+            DateFontName = dateFont?.DisplayName ?? string.Empty,
             DateFontScale = (double)(DateFontScale.Value ?? 1.0m),
-            TimeFontName = TimeFontCombo.SelectedItem?.ToString() ?? string.Empty,
-            TimeFontScale = (double)(TimeFontScale.Value ?? 1.0m)
+            TimeFontName = timeFont?.DisplayName ?? string.Empty,
+            TimeFontScale = (double)(TimeFontScale.Value ?? 1.0m),
+            DateBoxXOffset = (double)(DateBoxXOffset.Value ?? 0m),
+            DateBoxYOffset = (double)(DateBoxYOffset.Value ?? 0m),
+            TimeBoxXOffset = (double)(TimeBoxXOffset.Value ?? 0m),
+            TimeBoxYOffset = (double)(TimeBoxYOffset.Value ?? 0m)
         };
     }
 
@@ -239,5 +311,13 @@ public partial class ThemeWindow : Window
         }
 
         Position = new PixelPoint(x, y);
+    }
+
+    private class FontOption
+    {
+        public string DisplayName { get; set; } = string.Empty;
+        public FontFamily Family { get; set; } = FontFamily.Default;
+
+        public override string ToString() => DisplayName;
     }
 }

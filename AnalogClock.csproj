@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.0.13" />
     <PackageReference Include="Avalonia.Controls.ColorPicker" Version="11.0.13" />
     <PackageReference Include="Avalonia.Desktop" Version="11.0.13" />

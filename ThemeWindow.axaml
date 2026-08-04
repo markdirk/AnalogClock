@@ -2,73 +2,111 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AnalogClock.ThemeWindow"
         Title="Theme"
-        Width="440" Height="920"
+        Width="520" Height="900"
         Background="#FF2D2D2D"
         Foreground="White"
         Topmost="True"
         CanResize="True"
         WindowStartupLocation="Manual">
-  <ScrollViewer>
+  <ScrollViewer VerticalScrollBarVisibility="Visible" AllowAutoHide="False">
     <StackPanel Margin="15" Spacing="10">
       <TextBlock Text="Theme" FontSize="22" Margin="0,0,0,10" />
-      <ComboBox x:Name="ThemeCombo" Background="#FF3D3D3D" Foreground="White" />
-      <TextBox x:Name="NameBox" Watermark="Theme-Name" Foreground="White" Background="#FF555555" CaretBrush="White" />
 
-      <TextBlock Text="Farben" FontSize="16" Margin="0,10,0,0" />
-      <TextBlock Text="Zifferblatt" />
-      <ColorPicker x:Name="FaceColorPicker" />
-      <TextBlock Text="Rahmen" />
-      <ColorPicker x:Name="BorderColorPicker" />
-      <TextBlock Text="Ziffern" />
-      <ColorPicker x:Name="NumberColorPicker" />
-      <TextBlock Text="Stundenzeiger" />
-      <ColorPicker x:Name="HourHandColorPicker" />
-      <TextBlock Text="Minutenzeiger" />
-      <ColorPicker x:Name="MinuteHandColorPicker" />
-      <TextBlock Text="Sekundenzeiger" />
-      <ColorPicker x:Name="SecondHandColorPicker" />
-      <TextBlock Text="Minutenstriche" />
-      <ColorPicker x:Name="TickColorPicker" />
-      <TextBlock Text="Skaliergriff" />
-      <ColorPicker x:Name="GripColorPicker" />
-      <TextBlock Text="Datum" />
-      <ColorPicker x:Name="DateColorPicker" />
-      <TextBlock Text="Digitale Zeit" />
-      <ColorPicker x:Name="TimeColorPicker" />
+      <Expander Header="Allgemein" IsExpanded="True" Background="#FF3D3D3D" Padding="10">
+        <StackPanel Spacing="10">
+          <ComboBox x:Name="ThemeCombo" Background="#FF3D3D3D" Foreground="White" />
+          <TextBox x:Name="NameBox" Watermark="Theme-Name" Foreground="White" Background="#FF555555" CaretBrush="White" />
+          <CheckBox x:Name="SecondHandVisibleCheck" Content="Sekundenzeiger anzeigen" Foreground="White" />
+          <CheckBox x:Name="HandsAboveInfoCheck" Content="Zeiger über Datum/Zeit-Anzeige" Foreground="White" />
+        </StackPanel>
+      </Expander>
 
-      <TextBlock Text="Schriftarten" FontSize="16" Margin="0,10,0,0" />
+      <Expander Header="Farben" IsExpanded="True" Background="#FF3D3D3D" Padding="10">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Zifferblatt" />
+          <ColorPicker x:Name="FaceColorPicker" />
+          <TextBlock Text="Rahmen" />
+          <ColorPicker x:Name="BorderColorPicker" />
+          <TextBlock Text="Ziffern" />
+          <ColorPicker x:Name="NumberColorPicker" />
+          <TextBlock Text="Stundenzeiger" />
+          <ColorPicker x:Name="HourHandColorPicker" />
+          <TextBlock Text="Minutenzeiger" />
+          <ColorPicker x:Name="MinuteHandColorPicker" />
+          <TextBlock Text="Sekundenzeiger" />
+          <ColorPicker x:Name="SecondHandColorPicker" />
+          <TextBlock Text="Minutenstriche" />
+          <ColorPicker x:Name="TickColorPicker" />
+          <TextBlock Text="Skaliergriff" />
+          <ColorPicker x:Name="GripColorPicker" />
+          <TextBlock Text="Datum" />
+          <ColorPicker x:Name="DateColorPicker" />
+          <TextBlock Text="Digitale Zeit" />
+          <ColorPicker x:Name="TimeColorPicker" />
+          <TextBlock Text="Zeigernarbe Rand" />
+          <ColorPicker x:Name="CenterDotBorderColorPicker" />
+        </StackPanel>
+      </Expander>
 
-      <TextBlock Text="Ziffern" />
-      <ComboBox x:Name="NumberFontCombo" Background="#FF3D3D3D" Foreground="White">
-        <ComboBox.ItemTemplate>
-          <DataTemplate>
-            <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="14" />
-          </DataTemplate>
-        </ComboBox.ItemTemplate>
-      </ComboBox>
-      <NumericUpDown x:Name="NumberFontScale" Minimum="0.3" Maximum="3.0" Increment="0.1" Value="1.0" FormatString="0.0" />
+      <Expander Header="Schriftarten" IsExpanded="True" Background="#FF3D3D3D" Padding="10">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Ziffern" FontWeight="Bold" />
+          <ComboBox x:Name="NumberFontCombo" Background="#FF3D3D3D" Foreground="White">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding DisplayName}" FontFamily="{Binding Family}" FontSize="14" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <NumericUpDown x:Name="NumberFontScale" Minimum="0.3" Maximum="3.0" Increment="0.1" Value="1.0" FormatString="0.0" />
 
-      <TextBlock Text="Datum" />
-      <ComboBox x:Name="DateFontCombo" Background="#FF3D3D3D" Foreground="White">
-        <ComboBox.ItemTemplate>
-          <DataTemplate>
-            <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="14" />
-          </DataTemplate>
-        </ComboBox.ItemTemplate>
-      </ComboBox>
-      <NumericUpDown x:Name="DateFontScale" Minimum="0.3" Maximum="3.0" Increment="0.1" Value="1.0" FormatString="0.0" />
+          <TextBlock Text="Datum" FontWeight="Bold" Margin="0,10,0,0" />
+          <ComboBox x:Name="DateFontCombo" Background="#FF3D3D3D" Foreground="White">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding DisplayName}" FontFamily="{Binding Family}" FontSize="14" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <NumericUpDown x:Name="DateFontScale" Minimum="0.3" Maximum="3.0" Increment="0.1" Value="1.0" FormatString="0.0" />
 
-      <TextBlock Text="Digitale Zeit" />
-      <ComboBox x:Name="TimeFontCombo" Background="#FF3D3D3D" Foreground="White">
-        <ComboBox.ItemTemplate>
-          <DataTemplate>
-            <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="14" />
-          </DataTemplate>
-        </ComboBox.ItemTemplate>
-      </ComboBox>
-      <NumericUpDown x:Name="TimeFontScale" Minimum="0.3" Maximum="3.0" Increment="0.1" Value="1.0" FormatString="0.0" />
+          <TextBlock Text="Digitale Zeit" FontWeight="Bold" Margin="0,10,0,0" />
+          <ComboBox x:Name="TimeFontCombo" Background="#FF3D3D3D" Foreground="White">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding DisplayName}" FontFamily="{Binding Family}" FontSize="14" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <NumericUpDown x:Name="TimeFontScale" Minimum="0.3" Maximum="3.0" Increment="0.1" Value="1.0" FormatString="0.0" />
+        </StackPanel>
+      </Expander>
 
-      <CheckBox x:Name="SecondHandVisibleCheck" Content="Sekundenzeiger anzeigen" Foreground="White" Margin="0,10,0,0" />
+      <Expander Header="Hintergrund-Boxen" IsExpanded="False" Background="#FF3D3D3D" Padding="10">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Datum Box" FontWeight="Bold" />
+          <TextBlock Text="Hintergrund" />
+          <ColorPicker x:Name="DateBoxBackgroundColorPicker" />
+          <TextBlock Text="Rand" />
+          <ColorPicker x:Name="DateBoxBorderColorPicker" />
+          <Grid ColumnDefinitions="Auto,*,*">
+            <TextBlock Text="X / Y" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <NumericUpDown x:Name="DateBoxXOffset" Grid.Column="1" Minimum="-200" Maximum="200" Increment="1" Value="0" />
+            <NumericUpDown x:Name="DateBoxYOffset" Grid.Column="2" Minimum="-200" Maximum="200" Increment="1" Value="0" />
+          </Grid>
+
+          <TextBlock Text="Digitale Zeit Box" FontWeight="Bold" Margin="0,10,0,0" />
+          <TextBlock Text="Hintergrund" />
+          <ColorPicker x:Name="TimeBoxBackgroundColorPicker" />
+          <TextBlock Text="Rand" />
+          <ColorPicker x:Name="TimeBoxBorderColorPicker" />
+          <Grid ColumnDefinitions="Auto,*,*">
+            <TextBlock Text="X / Y" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <NumericUpDown x:Name="TimeBoxXOffset" Grid.Column="1" Minimum="-200" Maximum="200" Increment="1" Value="0" />
+            <NumericUpDown x:Name="TimeBoxYOffset" Grid.Column="2" Minimum="-200" Maximum="200" Increment="1" Value="0" />
+          </Grid>
+        </StackPanel>
+      </Expander>
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,15,0,0">
         <Button x:Name="SaveButton" Content="Speichern" Foreground="White" Background="#FF555555" ClickMode="Press" />

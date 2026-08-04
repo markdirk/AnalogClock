@@ -32,6 +32,8 @@ public class Alarm : INotifyPropertyChanged
     public bool Saturday { get; set; } = true;
     public bool Sunday { get; set; } = true;
     public bool Enabled { get; set; } = true;
+    public string Command { get; set; } = string.Empty;
+    public string Arguments { get; set; } = string.Empty;
 
     public string DisplayText => ToString();
 

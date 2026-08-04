@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
@@ -28,12 +29,24 @@ public class ClockControl : Control
     private IBrush? _dateBrush;
     private IBrush? _timeBrush;
     private bool _secondHandVisible;
+    private bool _handsAboveInfo;
+    private IBrush? _centerDotBorderBrush;
+    private IBrush? _dateBoxBgBrush;
+    private IBrush? _dateBoxBorderBrush;
+    private IBrush? _timeBoxBgBrush;
+    private IBrush? _timeBoxBorderBrush;
+    private double _dateBoxXOffset;
+    private double _dateBoxYOffset;
+    private double _timeBoxXOffset;
+    private double _timeBoxYOffset;
     private FontFamily _numberFont = FontFamily.Default;
     private FontFamily _dateFont = new("Segoe UI");
     private FontFamily _timeFont = new("Segoe UI");
     private double _numberFontScale = 1.0;
     private double _dateFontScale = 1.0;
     private double _timeFontScale = 1.0;
+
+    private static readonly FontFamily CustomDigitalFont = new("avares://AnalogClock/Assets/Digital7Mono.ttf#Digital-7 Mono");
 
     private const double TaperRatio = 0.95;
 
@@ -240,15 +253,34 @@ public class ClockControl : Control
         _numberFontScale = theme.NumberFontScale;
         _dateFontScale = theme.DateFontScale;
         _timeFontScale = theme.TimeFontScale;
+
+        _handsAboveInfo = theme.HandsAboveInfo;
+        _centerDotBorderBrush = ParseBrush(theme.CenterDotBorderColor);
+        _dateBoxBgBrush = ParseBrush(theme.DateBoxBackgroundColor);
+        _dateBoxBorderBrush = ParseBrush(theme.DateBoxBorderColor);
+        _timeBoxBgBrush = ParseBrush(theme.TimeBoxBackgroundColor);
+        _timeBoxBorderBrush = ParseBrush(theme.TimeBoxBorderColor);
+        _dateBoxXOffset = theme.DateBoxXOffset;
+        _dateBoxYOffset = theme.DateBoxYOffset;
+        _timeBoxXOffset = theme.TimeBoxXOffset;
+        _timeBoxYOffset = theme.TimeBoxYOffset;
     }
 
     private static FontFamily ParseFont(string? name)
     {
         if (!string.IsNullOrWhiteSpace(name))
         {
+            var trimmed = name.Trim();
+            if (string.Equals(trimmed, "Digital-7 Mono", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(trimmed, "Digital7Mono", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(trimmed, "Digital 7 Mono", StringComparison.OrdinalIgnoreCase))
+            {
+                return CustomDigitalFont;
+            }
+
             try
             {
-                return new FontFamily(name);
+                return new FontFamily(trimmed);
             }
             catch
             {
@@ -505,6 +537,22 @@ public class ClockControl : Control
 
     private void TriggerAlarm(Alarm alarm)
     {
+        if (!string.IsNullOrWhiteSpace(alarm.Command))
+        {
+            try
+            {
+                Process.Start(new System.Diagnostics.ProcessStartInfo(alarm.Command, alarm.Arguments)
+                {
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                });
+            }
+            catch
+            {
+                // ignore command failures
+            }
+        }
+
         var owner = _alarmWindow ?? _window;
         if (owner is null)
         {
@@ -573,25 +621,49 @@ public class ClockControl : Control
 
         DrawNumbers(context, cx, cy, radius, now.Hour);
 
-        DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, _hourHandBrush ?? Brushes.White);
-        DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, _minuteHandBrush ?? Brushes.White);
-
-        if (_secondHandVisible && _secondHandBrush is not null)
+        if (_handsAboveInfo)
         {
-            var secondAngle = totalSeconds * Math.PI / 30.0;
-            var secondLength = radius * 0.92;
-            var secondTail = radius * 0.15;
-            var secondWidth = radius * 0.008;
-            var secondPen = new Pen(_secondHandBrush, secondWidth) { LineCap = PenLineCap.Round };
-            var secondStart = new Point(cx - secondTail * Math.Sin(secondAngle), cy + secondTail * Math.Cos(secondAngle));
-            var secondEnd = new Point(cx + secondLength * Math.Sin(secondAngle), cy - secondLength * Math.Cos(secondAngle));
-            context.DrawLine(secondPen, secondStart, secondEnd);
+            DrawTime(context, cx, cy, radius, now);
+            DrawDate(context, cx, cy, radius, now);
+            DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, _hourHandBrush ?? Brushes.White);
+            DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, _minuteHandBrush ?? Brushes.White);
+
+            if (_secondHandVisible && _secondHandBrush is not null)
+            {
+                var secondAngle = totalSeconds * Math.PI / 30.0;
+                var secondLength = radius * 0.92;
+                var secondTail = radius * 0.15;
+                var secondWidth = radius * 0.008;
+                var secondPen = new Pen(_secondHandBrush, secondWidth) { LineCap = PenLineCap.Round };
+                var secondStart = new Point(cx - secondTail * Math.Sin(secondAngle), cy + secondTail * Math.Cos(secondAngle));
+                var secondEnd = new Point(cx + secondLength * Math.Sin(secondAngle), cy - secondLength * Math.Cos(secondAngle));
+                context.DrawLine(secondPen, secondStart, secondEnd);
+            }
+
+            DrawCenterDot(context, cx, cy, hourWidth);
         }
+        else
+        {
+            DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, _hourHandBrush ?? Brushes.White);
+            DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, _minuteHandBrush ?? Brushes.White);
 
-        context.DrawEllipse(_hourHandBrush ?? Brushes.White, null, new Point(cx, cy), hourWidth * 0.55, hourWidth * 0.55);
+            if (_secondHandVisible && _secondHandBrush is not null)
+            {
+                var secondAngle = totalSeconds * Math.PI / 30.0;
+                var secondLength = radius * 0.92;
+                var secondTail = radius * 0.15;
+                var secondWidth = radius * 0.008;
+                var secondPen = new Pen(_secondHandBrush, secondWidth) { LineCap = PenLineCap.Round };
+                var secondStart = new Point(cx - secondTail * Math.Sin(secondAngle), cy + secondTail * Math.Cos(secondAngle));
+                var secondEnd = new Point(cx + secondLength * Math.Sin(secondAngle), cy - secondLength * Math.Cos(secondAngle));
+                context.DrawLine(secondPen, secondStart, secondEnd);
+            }
 
-        DrawTime(context, cx, cy, radius, now);
-        DrawDate(context, cx, cy, radius, now);
+            DrawCenterDot(context, cx, cy, hourWidth);
+
+            DrawTime(context, cx, cy, radius, now);
+            DrawDate(context, cx, cy, radius, now);
+        }
 
         DrawResizeGrip(context, cx, cy, radius);
     }
@@ -713,8 +785,19 @@ public class ClockControl : Control
         var typeface = new Typeface(_timeFont, FontStyle.Normal, FontWeight.Bold);
         var text = now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
         var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, _timeBrush ?? Brushes.White);
-        var origin = new Point(cx - ft.Width / 2.0, cy - radius * 0.28 - ft.Height / 2.0);
-        context.DrawText(ft, origin);
+
+        var paddingX = radius * 0.04;
+        var paddingY = radius * 0.01;
+        var boxWidth = ft.Width + 2 * paddingX;
+        var boxHeight = ft.Height + 2 * paddingY;
+        var defaultX = cx - boxWidth / 2.0;
+        var defaultY = cy - radius * 0.28 - boxHeight / 2.0;
+        var boxX = defaultX + _timeBoxXOffset;
+        var boxY = defaultY + _timeBoxYOffset;
+
+        DrawRoundedRect(context, boxX, boxY, boxWidth, boxHeight, radius * 0.025, _timeBoxBgBrush, _timeBoxBorderBrush, radius * 0.003);
+
+        context.DrawText(ft, new Point(boxX + paddingX, boxY + paddingY));
     }
 
     private void DrawDate(DrawingContext context, double cx, double cy, double radius, DateTime now)
@@ -733,10 +816,73 @@ public class ClockControl : Control
 
         var spacing = radius * 0.01;
         var totalHeight = dayFt.Height + spacing + dateFt.Height;
-        var top = cy + radius * 0.40 - totalHeight / 2.0;
+        var maxWidth = Math.Max(dayFt.Width, dateFt.Width);
 
-        context.DrawText(dayFt, new Point(cx - dayFt.Width / 2.0, top));
-        context.DrawText(dateFt, new Point(cx - dateFt.Width / 2.0, top + dayFt.Height + spacing));
+        var paddingX = radius * 0.04;
+        var paddingY = radius * 0.015;
+        var boxWidth = maxWidth + 2 * paddingX;
+        var boxHeight = totalHeight + 2 * paddingY;
+        var defaultX = cx - boxWidth / 2.0;
+        var defaultY = cy + radius * 0.40 - boxHeight / 2.0;
+        var boxX = defaultX + _dateBoxXOffset;
+        var boxY = defaultY + _dateBoxYOffset;
+
+        DrawRoundedRect(context, boxX, boxY, boxWidth, boxHeight, radius * 0.025, _dateBoxBgBrush, _dateBoxBorderBrush, radius * 0.003);
+
+        var textX = boxX + paddingX;
+        var textTop = boxY + paddingY;
+        context.DrawText(dayFt, new Point(textX + (maxWidth - dayFt.Width) / 2.0, textTop));
+        context.DrawText(dateFt, new Point(textX + (maxWidth - dateFt.Width) / 2.0, textTop + dayFt.Height + spacing));
+    }
+
+    private void DrawCenterDot(DrawingContext context, double cx, double cy, double hourWidth)
+    {
+        var r = hourWidth * 0.55;
+        var center = new Point(cx, cy);
+        context.DrawEllipse(_hourHandBrush ?? Brushes.White, null, center, r, r);
+
+        if (_centerDotBorderBrush is not null)
+        {
+            var pen = new Pen(_centerDotBorderBrush, r * 0.15) { LineCap = PenLineCap.Round };
+            context.DrawEllipse(null, pen, center, r, r);
+        }
+    }
+
+    private static void DrawRoundedRect(DrawingContext context, double x, double y, double width, double height, double radius, IBrush? fill, IBrush? stroke, double strokeThickness)
+    {
+        var geometry = CreateRoundedRectGeometry(new Rect(x, y, width, height), radius);
+
+        if (fill is not null)
+        {
+            context.DrawGeometry(fill, null, geometry);
+        }
+
+        if (stroke is not null && strokeThickness > 0)
+        {
+            context.DrawGeometry(null, new Pen(stroke, strokeThickness), geometry);
+        }
+    }
+
+    private static Geometry CreateRoundedRectGeometry(Rect rect, double r)
+    {
+        var geometry = new PathGeometry();
+        var figure = new PathFigure
+        {
+            StartPoint = new Point(rect.X + r, rect.Y),
+            IsClosed = true
+        };
+
+        figure.Segments.Add(new LineSegment { Point = new Point(rect.X + rect.Width - r, rect.Y) });
+        figure.Segments.Add(new ArcSegment { Point = new Point(rect.X + rect.Width, rect.Y + r), Size = new Size(r, r), SweepDirection = SweepDirection.Clockwise, IsLargeArc = false });
+        figure.Segments.Add(new LineSegment { Point = new Point(rect.X + rect.Width, rect.Y + rect.Height - r) });
+        figure.Segments.Add(new ArcSegment { Point = new Point(rect.X + rect.Width - r, rect.Y + rect.Height), Size = new Size(r, r), SweepDirection = SweepDirection.Clockwise, IsLargeArc = false });
+        figure.Segments.Add(new LineSegment { Point = new Point(rect.X + r, rect.Y + rect.Height) });
+        figure.Segments.Add(new ArcSegment { Point = new Point(rect.X, rect.Y + rect.Height - r), Size = new Size(r, r), SweepDirection = SweepDirection.Clockwise, IsLargeArc = false });
+        figure.Segments.Add(new LineSegment { Point = new Point(rect.X, rect.Y + r) });
+        figure.Segments.Add(new ArcSegment { Point = new Point(rect.X + r, rect.Y), Size = new Size(r, r), SweepDirection = SweepDirection.Clockwise, IsLargeArc = false });
+
+        geometry.Figures.Add(figure);
+        return geometry;
     }
 
     private void DrawHand(DrawingContext context, double cx, double cy, double angle, double length, double width, IBrush brush)

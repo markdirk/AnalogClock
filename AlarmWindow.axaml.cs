@@ -22,6 +22,8 @@ public partial class AlarmWindow : Window
     public AlarmWindow(ClockSettings settings) : this()
     {
         _settings = settings;
+        Width = 520;
+        Height = 640;
         SetupControls();
     }
 
@@ -138,7 +140,9 @@ public partial class AlarmWindow : Window
             Hour = future.Hour,
             Minute = future.Minute,
             Description = "Wecker",
-            Enabled = false
+            Enabled = false,
+            Command = string.Empty,
+            Arguments = string.Empty
         };
         _isNew = true;
 
@@ -214,6 +218,8 @@ public partial class AlarmWindow : Window
         MinuteOnesSpinner.Value = alarm.Minute % 10;
         UpdateLimits();
         DescriptionBox.Text = alarm.Description;
+        CommandBox.Text = alarm.Command;
+        ArgumentsBox.Text = alarm.Arguments;
         EnabledCheck.IsChecked = alarm.Enabled;
         _dayChecks[0].IsChecked = alarm.Monday;
         _dayChecks[1].IsChecked = alarm.Tuesday;
@@ -242,6 +248,8 @@ public partial class AlarmWindow : Window
         alarm.Hour = HourTensSpinner.Value * 10 + HourOnesSpinner.Value;
         alarm.Minute = MinuteTensSpinner.Value * 10 + MinuteOnesSpinner.Value;
         alarm.Description = DescriptionBox.Text ?? string.Empty;
+        alarm.Command = CommandBox.Text ?? string.Empty;
+        alarm.Arguments = ArgumentsBox.Text ?? string.Empty;
         alarm.Enabled = EnabledCheck.IsChecked ?? false;
         alarm.Monday = _dayChecks[0].IsChecked ?? false;
         alarm.Tuesday = _dayChecks[1].IsChecked ?? false;
