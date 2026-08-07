@@ -31,8 +31,7 @@ public class ClockSettings
 
     public string GetBaseDirectory()
     {
-        var assembly = System.Reflection.Assembly.GetEntryAssembly()?.Location;
-        return string.IsNullOrEmpty(assembly) ? AppContext.BaseDirectory : Path.GetDirectoryName(assembly)!;
+        return AppContext.BaseDirectory;
     }
 }
 
