@@ -696,9 +696,8 @@ public partial class AlarmWindow : Window
         var today = GetTodayForSettings();
         _specificDatePicker = new DatePicker
         {
-            Width = 120,
             DayFormat = "dd",
-            MonthFormat = "MM",
+            MonthFormat = "MMMM",
             YearFormat = "yyyy",
             SelectedDate = new DateTimeOffset(today)
         };
@@ -939,9 +938,8 @@ public partial class AlarmWindow : Window
 
         _startDatePicker = new DatePicker
         {
-            Width = 120,
             DayFormat = "dd",
-            MonthFormat = "MM",
+            MonthFormat = "MMMM",
             YearFormat = "yyyy"
         };
         if (_selectedRule.IntervalStart.HasValue)
