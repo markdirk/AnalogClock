@@ -114,7 +114,9 @@ public partial class AlarmWindow : Window
     private static readonly UnitOption[] UnitOptions = new[]
     {
         new UnitOption { Display = "Tage", Unit = RecurrenceUnit.Days },
-        new UnitOption { Display = "Wochen", Unit = RecurrenceUnit.Weeks }
+        new UnitOption { Display = "Wochen", Unit = RecurrenceUnit.Weeks },
+        new UnitOption { Display = "Monate", Unit = RecurrenceUnit.Months },
+        new UnitOption { Display = "Jahre", Unit = RecurrenceUnit.Years }
     };
 
     public AlarmWindow()
@@ -686,11 +688,11 @@ public partial class AlarmWindow : Window
             _specificDatesList.Items.Add(date.ToString("dd.MM.yyyy"));
         }
 
-        _specificDatePicker = new DatePicker();
-        if (_specificDatePicker is not null)
+        _specificDatePicker = new DatePicker
         {
-            _specificDatePicker.SelectedDate = new DateTimeOffset(DateTime.Today);
-        }
+            Width = 150,
+            SelectedDate = new DateTimeOffset(DateTime.Today)
+        };
 
         var addButton = new Button
         {
@@ -707,6 +709,11 @@ public partial class AlarmWindow : Window
             }
 
             var date = selected.DateTime.Date;
+            if (date < DateTime.Today)
+            {
+                return;
+            }
+
             if (!_selectedRule.Dates.Any(d => d.Date == date))
             {
                 _selectedRule.Dates.Add(date);
@@ -815,7 +822,7 @@ public partial class AlarmWindow : Window
 
         _ordinalCombo = new ComboBox
         {
-            Width = 100,
+            Width = 105,
             Background = new SolidColorBrush(Color.Parse("#FF3D3D3D")),
             Foreground = Brushes.White,
             ItemsSource = OrdinalOptions
@@ -825,7 +832,7 @@ public partial class AlarmWindow : Window
 
         _weekdayCombo = new ComboBox
         {
-            Width = 120,
+            Width = 115,
             Background = new SolidColorBrush(Color.Parse("#FF3D3D3D")),
             Foreground = Brushes.White,
             ItemsSource = WeekdayOptions
@@ -840,8 +847,36 @@ public partial class AlarmWindow : Window
             IsChecked = _selectedRule.MonthWeekdayBeforeLastDay
         };
 
+        var suppress = false;
+
+        void UpdateBeforeLastCheck()
+        {
+            if (_beforeLastCheck is null || _ordinalCombo?.SelectedItem is not OrdinalOption option)
+            {
+                return;
+            }
+
+            suppress = true;
+            if (option.Ordinal > 0)
+            {
+                _beforeLastCheck.IsEnabled = false;
+                _beforeLastCheck.IsChecked = false;
+            }
+            else
+            {
+                _beforeLastCheck.IsEnabled = true;
+            }
+            suppress = false;
+        }
+
         void OnChanged()
         {
+            if (suppress)
+            {
+                return;
+            }
+
+            UpdateBeforeLastCheck();
             SyncSelectedRule();
             _selectedRule?.RefreshDisplay();
             if (_currentAlarm is not null)
@@ -853,6 +888,8 @@ public partial class AlarmWindow : Window
         _ordinalCombo.SelectionChanged += (_, _) => OnChanged();
         _weekdayCombo.SelectionChanged += (_, _) => OnChanged();
         _beforeLastCheck.IsCheckedChanged += (_, _) => OnChanged();
+
+        UpdateBeforeLastCheck();
 
         panel.Children.Add(_ordinalCombo);
         panel.Children.Add(_weekdayCombo);
@@ -881,6 +918,7 @@ public partial class AlarmWindow : Window
         _intervalUnitCombo = new ComboBox
         {
             Width = 100,
+            MinWidth = 100,
             Background = new SolidColorBrush(Color.Parse("#FF3D3D3D")),
             Foreground = Brushes.White,
             ItemsSource = UnitOptions
@@ -888,7 +926,10 @@ public partial class AlarmWindow : Window
         _intervalUnitCombo.DisplayMemberBinding = new Binding("Display");
         _intervalUnitCombo.SelectedItem = UnitOptions.FirstOrDefault(u => u.Unit == _selectedRule.IntervalUnit);
 
-        _startDatePicker = new DatePicker();
+        _startDatePicker = new DatePicker
+        {
+            Width = 150
+        };
         if (_selectedRule.IntervalStart.HasValue)
         {
             _startDatePicker.SelectedDate = new DateTimeOffset(_selectedRule.IntervalStart.Value);

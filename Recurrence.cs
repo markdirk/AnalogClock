@@ -19,7 +19,9 @@ public enum RecurrenceType
 public enum RecurrenceUnit
 {
     Days,
-    Weeks
+    Weeks,
+    Months,
+    Years
 }
 
 public class RecurrenceRule : INotifyPropertyChanged
@@ -171,29 +173,51 @@ public class RecurrenceRule : INotifyPropertyChanged
             return false;
         }
 
-        var diff = (date.Date - start).Days;
-        if (diff < 0)
+        if (date.Date < start)
         {
             return false;
         }
 
-        if (IntervalUnit == RecurrenceUnit.Weeks)
+        switch (IntervalUnit)
         {
-            var weeks = diff / 7;
-            if (weeks % IntervalValue != 0)
-            {
-                return false;
-            }
+            case RecurrenceUnit.Days:
+                var diff = (date.Date - start).Days;
+                return diff >= 0 && diff % IntervalValue == 0;
 
-            if (DaysOfWeek.Count > 0 && !DaysOfWeek.Contains(date.DayOfWeek))
-            {
-                return false;
-            }
+            case RecurrenceUnit.Weeks:
+                var weeks = (date.Date - start).Days / 7;
+                if (weeks < 0 || weeks % IntervalValue != 0)
+                {
+                    return false;
+                }
 
-            return true;
+                return DaysOfWeek.Count == 0 || DaysOfWeek.Contains(date.DayOfWeek);
+
+            case RecurrenceUnit.Months:
+                var monthDay = Math.Min(start.Day, DateTime.DaysInMonth(date.Year, date.Month));
+                var monthTarget = new DateTime(date.Year, date.Month, monthDay);
+                if (monthTarget != date.Date)
+                {
+                    return false;
+                }
+
+                var months = (date.Year - start.Year) * 12 + (date.Month - start.Month);
+                return months >= 0 && months % IntervalValue == 0;
+
+            case RecurrenceUnit.Years:
+                var yearDay = Math.Min(start.Day, DateTime.DaysInMonth(date.Year, date.Month));
+                var yearTarget = new DateTime(date.Year, start.Month, yearDay);
+                if (yearTarget != date.Date)
+                {
+                    return false;
+                }
+
+                var years = date.Year - start.Year;
+                return years >= 0 && years % IntervalValue == 0;
+
+            default:
+                return false;
         }
-
-        return diff % IntervalValue == 0;
     }
 
     private string _displayText = string.Empty;
@@ -231,7 +255,7 @@ public class RecurrenceRule : INotifyPropertyChanged
             RecurrenceType.SpecificDates => $"Termine: {(Dates.Count == 0 ? "keine" : string.Join(", ", Dates.Select(d => d.ToString("dd.MM.yyyy"))))}",
             RecurrenceType.MonthlyDay => $"Monatstage: {(MonthDays.Count == 0 ? "keine" : string.Join(", ", MonthDays))}",
             RecurrenceType.MonthlyWeekday => $"{GermanOrdinal(MonthWeekdayOrdinal)} {GermanDay(MonthWeekday ?? DayOfWeek.Monday)}{(MonthWeekdayBeforeLastDay ? " vor Monatsletztem" : "")}",
-            RecurrenceType.Interval => $"Alle {IntervalValue} {GermanUnit(IntervalUnit)}{(DaysOfWeek.Count > 0 ? $" am {string.Join(", ", DaysOfWeek.Select(GermanDay))}" : "")}",
+            RecurrenceType.Interval => $"Alle {IntervalValue} {GermanUnit(IntervalUnit)}{(IntervalUnit == RecurrenceUnit.Weeks && DaysOfWeek.Count > 0 ? $" am {string.Join(", ", DaysOfWeek.Select(GermanDay))}" : "")}",
             _ => string.Empty
         };
     }
@@ -274,6 +298,8 @@ public class RecurrenceRule : INotifyPropertyChanged
         {
             RecurrenceUnit.Days => "Tage",
             RecurrenceUnit.Weeks => "Wochen",
+            RecurrenceUnit.Months => "Monate",
+            RecurrenceUnit.Years => "Jahre",
             _ => unit.ToString()
         };
     }

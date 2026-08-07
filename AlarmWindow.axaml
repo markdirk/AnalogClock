@@ -30,7 +30,7 @@
       <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="5" Margin="0,10,0,0" x:Name="RecurrencePanel">
         <ListBox x:Name="RecurrenceList" Background="#FF3D3D3D" Foreground="White" Height="80" HorizontalAlignment="Stretch" />
         <StackPanel Orientation="Horizontal" Spacing="5">
-          <ComboBox x:Name="RecurrenceTypeCombo" Width="150" Background="#FF3D3D3D" Foreground="White" />
+          <ComboBox x:Name="RecurrenceTypeCombo" Width="180" Background="#FF3D3D3D" Foreground="White" />
           <Button x:Name="AddRuleButton" Content="+" FontSize="16" Width="30" Height="30" Foreground="White" Background="#FF555555" />
           <Button x:Name="RemoveRuleButton" Content="-" FontSize="16" Width="30" Height="30" Foreground="White" Background="#FF555555" />
         </StackPanel>
@@ -43,7 +43,7 @@
       <CheckBox Grid.Row="3" Grid.Column="1" x:Name="EnabledCheck" Content="Aktiv" Foreground="White" Margin="0,10,0,0" />
 
       <TextBlock Grid.Row="4" Text="Modus:" VerticalAlignment="Center" Margin="0,10,10,0" />
-      <ComboBox Grid.Row="4" Grid.Column="1" x:Name="ModeCombo" Background="#FF3D3D3D" Foreground="White" Margin="0,10,0,0" />
+      <ComboBox Grid.Row="4" Grid.Column="1" x:Name="ModeCombo" Width="260" Background="#FF3D3D3D" Foreground="White" Margin="0,10,0,0" />
 
       <TextBlock Grid.Row="5" Text="Alarmton:" VerticalAlignment="Center" Margin="0,10,10,0" />
       <Grid Grid.Row="5" Grid.Column="1" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
