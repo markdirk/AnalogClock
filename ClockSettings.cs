@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace AnalogClock;
 
@@ -17,7 +19,12 @@ public class ClockSettings
     public string SecondHandState { get; set; } = "Red";
     public string TimeZoneId { get; set; } = "W. Europe Standard Time";
     public bool IsLicensed { get; set; } = false;
+    public string LicenseKeyEncrypted { get; set; } = string.Empty;
+    [JsonIgnore]
     public string LicenseKey { get; set; } = string.Empty;
+    public string ActivationTokenEncrypted { get; set; } = string.Empty;
+    [JsonIgnore]
+    public string ActivationToken { get; set; } = string.Empty;
     public ClockTheme CurrentTheme { get; set; } = new();
     public List<ClockTheme> Themes { get; set; } = new() { new() };
     public ObservableCollection<Alarm> Alarms { get; set; } = new();
@@ -55,6 +62,7 @@ public class Alarm : INotifyPropertyChanged
     public string Arguments { get; set; } = string.Empty;
     public AlarmMode Mode { get; set; } = AlarmMode.Default;
     public string SoundFile { get; set; } = string.Empty;
+    public List<RecurrenceRule> RecurrenceRules { get; set; } = new();
 
     public string DisplayText => ToString();
 
@@ -72,9 +80,18 @@ public class Alarm : INotifyPropertyChanged
 
     public override string ToString()
     {
-        var days = new[] { Monday ? "Mo" : null, Tuesday ? "Di" : null, Wednesday ? "Mi" : null, Thursday ? "Do" : null, Friday ? "Fr" : null, Saturday ? "Sa" : null, Sunday ? "So" : null };
-        var dayText = string.Join(", ", Array.FindAll(days, x => x is not null));
-        if (string.IsNullOrEmpty(dayText)) dayText = "Einmal";
+        string recurrence;
+        if (RecurrenceRules.Count > 0)
+        {
+            recurrence = string.Join("; ", RecurrenceRules.Select(r => r.DisplayText));
+        }
+        else
+        {
+            var days = new[] { Monday ? "Mo" : null, Tuesday ? "Di" : null, Wednesday ? "Mi" : null, Thursday ? "Do" : null, Friday ? "Fr" : null, Saturday ? "Sa" : null, Sunday ? "So" : null };
+            recurrence = string.Join(", ", Array.FindAll(days, x => x is not null));
+            if (string.IsNullOrEmpty(recurrence)) recurrence = "Einmal";
+        }
+
         var mode = Mode switch
         {
             AlarmMode.Visual => " [Still]",
@@ -82,6 +99,6 @@ public class Alarm : INotifyPropertyChanged
             AlarmMode.Background => " [Hintergrund]",
             _ => string.Empty
         };
-        return $"{Hour:D2}:{Minute:D2} {dayText}{mode} - {Description}".TrimEnd(' ', '-');
+        return $"{Hour:D2}:{Minute:D2} {recurrence}{mode} - {Description}".TrimEnd(' ', '-');
     }
 }

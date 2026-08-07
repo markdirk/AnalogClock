@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
@@ -161,10 +162,41 @@ public class ClockControl : Control
     {
         var menu = new ContextMenu();
 
+        var showSecondHandText = new TextBlock();
+        var showSecondHandItem = new MenuItem { Header = showSecondHandText };
+        showSecondHandItem.Click += (_, _) =>
+        {
+            if (_settings.CurrentTheme is null)
+            {
+                return;
+            }
+
+            _settings.CurrentTheme.SecondHandVisible = !_settings.CurrentTheme.SecondHandVisible;
+            _settings.SecondHandState = _settings.CurrentTheme.SecondHandVisible ? "Red" : "Hidden";
+            EnsureTheme();
+            ApplyThemeAndSave();
+        };
+
+        var handsAboveText = new TextBlock();
+        var handsAboveItem = new MenuItem { Header = handsAboveText };
+        handsAboveItem.Click += (_, _) =>
+        {
+            if (_settings.CurrentTheme is null)
+            {
+                return;
+            }
+
+            _settings.CurrentTheme.HandsAboveInfo = !_settings.CurrentTheme.HandsAboveInfo;
+            ApplyThemeAndSave();
+        };
+
         var zeigerItem = new MenuItem { Header = "Zeiger" };
         zeigerItem.Items.Add(CreateMenuItem("Sekunden-Zeiger rot", () => SetSecondHand("Red")));
         zeigerItem.Items.Add(CreateMenuItem("Sekunden-Zeiger weiß", () => SetSecondHand("White")));
         zeigerItem.Items.Add(CreateMenuItem("Sekundenzeiger aus", () => SetSecondHand("Hidden")));
+        zeigerItem.Items.Add(new Separator());
+        zeigerItem.Items.Add(showSecondHandItem);
+        zeigerItem.Items.Add(handsAboveItem);
         menu.Items.Add(zeigerItem);
 
         menu.Items.Add(CreateMenuItem("Wecker", OpenAlarmWindow));
@@ -184,9 +216,19 @@ public class ClockControl : Control
 
         menu.Items.Add(CreateMenuItem("Beenden", ExitApplication));
 
-        menu.Opening += (_, _) => RebuildThemeMenu(themesSub);
+        menu.Opening += (_, _) =>
+        {
+            RebuildThemeMenu(themesSub);
+            showSecondHandText.Text = ToggleText("Sekundenzeiger anzeigen", _settings.CurrentTheme?.SecondHandVisible ?? true);
+            handsAboveText.Text = ToggleText("Zeiger über Datum/Zeit", _settings.CurrentTheme?.HandsAboveInfo ?? false);
+        };
 
         return menu;
+    }
+
+    private static string ToggleText(string label, bool isChecked)
+    {
+        return isChecked ? $"[x] {label}" : $"[ ] {label}";
     }
 
     private MenuItem CreateMenuItem(string header, Action action)
@@ -630,7 +672,7 @@ public class ClockControl : Control
                 continue;
             }
 
-            if (!IsDayEnabled(alarm, now.DayOfWeek))
+            if (!IsAlarmDay(alarm, now))
             {
                 continue;
             }
@@ -643,6 +685,16 @@ public class ClockControl : Control
             _triggeredThisMinute.Add(alarm.Id);
             TriggerAlarm(alarm);
         }
+    }
+
+    private static bool IsAlarmDay(Alarm alarm, DateTime date)
+    {
+        if (alarm.RecurrenceRules.Count > 0)
+        {
+            return alarm.RecurrenceRules.Any(r => r.Matches(date.Date));
+        }
+
+        return IsDayEnabled(alarm, date.DayOfWeek);
     }
 
     private static bool IsDayEnabled(Alarm alarm, DayOfWeek day)

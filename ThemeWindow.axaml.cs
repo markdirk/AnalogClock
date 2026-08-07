@@ -13,6 +13,7 @@ public partial class ThemeWindow : Window
 {
     private ClockSettings _settings = new();
     private Action _onApply = () => { };
+    private ClockTheme _loadedTheme = new();
 
     public ThemeWindow()
     {
@@ -51,8 +52,6 @@ public partial class ThemeWindow : Window
         NumberFontScale.ValueChanged += (_, _) => PreviewTheme();
         DateFontScale.ValueChanged += (_, _) => PreviewTheme();
         TimeFontScale.ValueChanged += (_, _) => PreviewTheme();
-        HandsAboveInfoCheck.IsCheckedChanged += (_, _) => PreviewTheme();
-
         FaceColorPicker.ColorChanged += (_, _) => PreviewTheme();
         BorderColorPicker.ColorChanged += (_, _) => PreviewTheme();
         NumberColorPicker.ColorChanged += (_, _) => PreviewTheme();
@@ -72,7 +71,6 @@ public partial class ThemeWindow : Window
         DateBoxYOffset.ValueChanged += (_, _) => PreviewTheme();
         TimeBoxXOffset.ValueChanged += (_, _) => PreviewTheme();
         TimeBoxYOffset.ValueChanged += (_, _) => PreviewTheme();
-        SecondHandVisibleCheck.IsCheckedChanged += (_, _) => PreviewTheme();
 
         ThemeCombo.SelectionChanged += (_, _) =>
         {
@@ -104,6 +102,7 @@ public partial class ThemeWindow : Window
 
     private void LoadTheme(ClockTheme theme)
     {
+        _loadedTheme = theme;
         NameBox.Text = theme.Name;
         FaceColorPicker.Color = ParseColor(theme.FaceColor) ?? Colors.White;
         BorderColorPicker.Color = ParseColor(theme.BorderColor) ?? Colors.Black;
@@ -120,9 +119,6 @@ public partial class ThemeWindow : Window
         DateBoxBorderColorPicker.Color = ParseColor(theme.DateBoxBorderColor) ?? Color.Parse("#33FFFFFF");
         TimeBoxBackgroundColorPicker.Color = ParseColor(theme.TimeBoxBackgroundColor) ?? Color.Parse("#FF0D0D0D");
         TimeBoxBorderColorPicker.Color = ParseColor(theme.TimeBoxBorderColor) ?? Color.Parse("#33FFFFFF");
-
-        SecondHandVisibleCheck.IsChecked = theme.SecondHandVisible;
-        HandsAboveInfoCheck.IsChecked = theme.HandsAboveInfo;
 
         NumberFontCombo.SelectedItem = FindFontOption(theme.FontName);
         DateFontCombo.SelectedItem = FindFontOption(theme.DateFontName);
@@ -175,8 +171,8 @@ public partial class ThemeWindow : Window
             DateBoxBorderColor = ColorToString(DateBoxBorderColorPicker.Color),
             TimeBoxBackgroundColor = ColorToString(TimeBoxBackgroundColorPicker.Color),
             TimeBoxBorderColor = ColorToString(TimeBoxBorderColorPicker.Color),
-            SecondHandVisible = SecondHandVisibleCheck.IsChecked ?? false,
-            HandsAboveInfo = HandsAboveInfoCheck.IsChecked ?? false,
+            SecondHandVisible = _loadedTheme.SecondHandVisible,
+            HandsAboveInfo = _loadedTheme.HandsAboveInfo,
             FontName = numberFont?.DisplayName ?? string.Empty,
             NumberFontScale = (double)(NumberFontScale.Value ?? 1.0m),
             DateFontName = dateFont?.DisplayName ?? string.Empty,

@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\clock-icon.ico</ApplicationIcon>
+    <DefaultItemExcludes>$(DefaultItemExcludes);KeyGenerator\**\*</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,5 +19,6 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.13" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.13" />
     <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 </Project>

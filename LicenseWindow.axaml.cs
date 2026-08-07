@@ -1,18 +1,20 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 
 namespace AnalogClock;
 
 public partial class LicenseWindow : Window
 {
-    private const string DeveloperKey = "APZ3-TQE3-248A-5KW8-YCBW-J5F8G";
     private ClockSettings _settings = new();
     private TextBox[] _parts = Array.Empty<TextBox>();
+    private string _hardwareId = string.Empty;
 
     public LicenseWindow()
     {
@@ -28,6 +30,9 @@ public partial class LicenseWindow : Window
     private void SetupControls()
     {
         _parts = new[] { Part1Box, Part2Box, Part3Box, Part4Box, Part5Box, Part6Box };
+        _hardwareId = HardwareId.GetHardwareId();
+
+        HwidText.Text = _hardwareId;
 
         var existing = _settings.LicenseKey?.Split('-');
         for (int i = 0; i < _parts.Length; i++)
@@ -35,7 +40,7 @@ public partial class LicenseWindow : Window
             var part = _parts[i];
             part.Text = existing is not null && i < existing.Length ? existing[i] : string.Empty;
             part.TextChanged += Part_TextChanged;
-            part.KeyDown += Part_KeyDown;
+            part.AddHandler(InputElement.KeyDownEvent, Part_KeyDown, Avalonia.Interactivity.RoutingStrategies.Bubble, handledEventsToo: true);
         }
 
         if (_settings.IsLicensed)
@@ -86,10 +91,11 @@ public partial class LicenseWindow : Window
     public void ActivateButton_Click(object? sender, RoutedEventArgs e)
     {
         var key = string.Join("-", _parts.Select(p => p.Text ?? string.Empty));
-        if (key == DeveloperKey)
+        if (LicenseKey.Verify(key))
         {
             _settings.IsLicensed = true;
             _settings.LicenseKey = key;
+            SettingsService.Save(_settings);
             Close();
         }
         else
@@ -132,7 +138,19 @@ public partial class LicenseWindow : Window
             return;
         }
 
-        var parts = text.Trim().Split('-');
+        var key = text.Trim().Replace(" ", string.Empty);
+        var match = Regex.Match(key, @"^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4,5}$");
+        if (!match.Success)
+        {
+            if (StatusText is not null)
+            {
+                StatusText.Text = "Ungültiges Lizenzformat. Erwartet: XXXX-XXXX-XXXX-XXXX-XXXX-XXXXX";
+                StatusText.Foreground = Brushes.Yellow;
+            }
+            return;
+        }
+
+        var parts = key.Split('-');
         for (int i = 0; i < _parts.Length && i < parts.Length; i++)
         {
             _parts[i].Text = parts[i].Trim().ToUpperInvariant();

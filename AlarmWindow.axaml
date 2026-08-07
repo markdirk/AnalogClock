@@ -3,20 +3,20 @@
         xmlns:local="using:AnalogClock"
         x:Class="AnalogClock.AlarmWindow"
         Title="Wecker"
-        Width="520" Height="540"
+        Width="520" Height="800"
         Background="#FF2D2D2D"
         Foreground="White"
         Topmost="True"
         CanResize="True"
         WindowStartupLocation="Manual">
-  <Grid Margin="15" RowDefinitions="Auto,*,Auto,Auto">
+  <Grid Margin="15" RowDefinitions="Auto,120,Auto,Auto">
     <TextBlock Text="Wecker" FontSize="22" Margin="0,0,0,10" />
     <ListBox Grid.Row="1" x:Name="AlarmList" Background="#FF3D3D3D" Foreground="White" Margin="0,0,0,10" HorizontalAlignment="Stretch" />
     <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,0,0,10">
-      <Button x:Name="AddButton" Content="+" FontSize="18" Width="40" Height="40" Foreground="White" Background="#FF555555" ClickMode="Press" />
-      <Button x:Name="DeleteButton" Content="Löschen" Foreground="White" Background="#FF555555" ClickMode="Press" />
+      <Button x:Name="AddButton" Content="+" FontSize="18" Width="40" Height="40" Foreground="White" Background="#FF555555" />
+      <Button x:Name="DeleteButton" Content="Löschen" Foreground="White" Background="#FF555555" />
     </StackPanel>
-    <Grid Grid.Row="3" x:Name="EditPanel" IsVisible="False" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+    <Grid Grid.Row="3" x:Name="EditPanel" IsVisible="False" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
       <TextBlock Grid.Row="0" Text="Zeit:" VerticalAlignment="Top" Margin="0,0,10,0" />
       <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
         <local:DigitSpinner x:Name="HourTensSpinner" />
@@ -26,15 +26,15 @@
         <local:DigitSpinner x:Name="MinuteOnesSpinner" />
       </StackPanel>
 
-      <TextBlock Grid.Row="1" Text="Tage:" VerticalAlignment="Center" Margin="0,10,10,0" />
-      <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0" x:Name="DaysGrid" HorizontalAlignment="Right">
-        <CheckBox x:Name="MoCheck" Content="Mo" Foreground="White" Padding="2,0,0,0" />
-        <CheckBox x:Name="DiCheck" Content="Di" Foreground="White" Padding="2,0,0,0" />
-        <CheckBox x:Name="MiCheck" Content="Mi" Foreground="White" Padding="2,0,0,0" />
-        <CheckBox x:Name="DoCheck" Content="Do" Foreground="White" Padding="2,0,0,0" />
-        <CheckBox x:Name="FrCheck" Content="Fr" Foreground="White" Padding="2,0,0,0" />
-        <CheckBox x:Name="SaCheck" Content="Sa" Foreground="White" Padding="2,0,0,0" />
-        <CheckBox x:Name="SoCheck" Content="So" Foreground="White" Padding="2,0,0,0" />
+      <TextBlock Grid.Row="1" Text="Wiederholung:" VerticalAlignment="Top" Margin="0,10,10,0" />
+      <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Vertical" Spacing="5" Margin="0,10,0,0" x:Name="RecurrencePanel">
+        <ListBox x:Name="RecurrenceList" Background="#FF3D3D3D" Foreground="White" Height="80" HorizontalAlignment="Stretch" />
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <ComboBox x:Name="RecurrenceTypeCombo" Width="150" Background="#FF3D3D3D" Foreground="White" />
+          <Button x:Name="AddRuleButton" Content="+" FontSize="16" Width="30" Height="30" Foreground="White" Background="#FF555555" />
+          <Button x:Name="RemoveRuleButton" Content="-" FontSize="16" Width="30" Height="30" Foreground="White" Background="#FF555555" />
+        </StackPanel>
+        <StackPanel x:Name="RuleEditorPanel" Orientation="Vertical" Spacing="5" />
       </StackPanel>
 
       <TextBlock Grid.Row="2" Text="Beschreibung:" VerticalAlignment="Center" Margin="0,10,10,0" />
@@ -48,7 +48,7 @@
       <TextBlock Grid.Row="5" Text="Alarmton:" VerticalAlignment="Center" Margin="0,10,10,0" />
       <Grid Grid.Row="5" Grid.Column="1" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
         <TextBox x:Name="SoundFileBox" Watermark="MP3/WAV/..." Foreground="White" Background="#FF555555" CaretBrush="White" />
-        <Button x:Name="BrowseSoundButton" Grid.Column="1" Content="Durchsuchen" Foreground="White" Background="#FF555555" ClickMode="Press" Margin="8,0,0,0" />
+        <Button x:Name="BrowseSoundButton" Grid.Column="1" Content="Durchsuchen" Foreground="White" Background="#FF555555" Margin="8,0,0,0" />
       </Grid>
 
       <TextBlock Grid.Row="6" Text="Programm:" VerticalAlignment="Center" Margin="0,10,10,0" />
@@ -57,7 +57,7 @@
       <TextBlock Grid.Row="7" Text="Argumente:" VerticalAlignment="Center" Margin="0,10,10,0" />
       <TextBox Grid.Row="7" Grid.Column="1" x:Name="ArgumentsBox" Margin="0,10,0,0" Watermark="Parameter" Foreground="White" Background="#FF555555" CaretBrush="White" />
 
-      <Button Grid.Row="8" Grid.Column="1" x:Name="SaveButton" Content="Speichern" HorizontalAlignment="Right" Margin="0,15,0,0" Foreground="White" Background="#FF555555" ClickMode="Press" HorizontalContentAlignment="Center" />
+      <Button Grid.Row="8" Grid.Column="1" x:Name="SaveButton" Content="Speichern" HorizontalAlignment="Right" Margin="0,15,0,0" Foreground="White" Background="#FF555555" HorizontalContentAlignment="Center" />
     </Grid>
   </Grid>
 </Window>

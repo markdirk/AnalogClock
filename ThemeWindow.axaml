@@ -16,8 +16,6 @@
         <StackPanel Spacing="10">
           <ComboBox x:Name="ThemeCombo" Background="#FF3D3D3D" Foreground="White" />
           <TextBox x:Name="NameBox" Watermark="Theme-Name" Foreground="White" Background="#FF555555" CaretBrush="White" />
-          <CheckBox x:Name="SecondHandVisibleCheck" Content="Sekundenzeiger anzeigen" Foreground="White" />
-          <CheckBox x:Name="HandsAboveInfoCheck" Content="Zeiger über Datum/Zeit-Anzeige" Foreground="White" />
         </StackPanel>
       </Expander>
 
