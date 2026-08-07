@@ -16,7 +16,7 @@
       <Button x:Name="AddButton" Content="+" FontSize="18" Width="40" Height="40" Foreground="White" Background="#FF555555" ClickMode="Press" />
       <Button x:Name="DeleteButton" Content="Löschen" Foreground="White" Background="#FF555555" ClickMode="Press" />
     </StackPanel>
-    <Grid Grid.Row="3" x:Name="EditPanel" IsVisible="False" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+    <Grid Grid.Row="3" x:Name="EditPanel" IsVisible="False" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
       <TextBlock Grid.Row="0" Text="Zeit:" VerticalAlignment="Top" Margin="0,0,10,0" />
       <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
         <local:DigitSpinner x:Name="HourTensSpinner" />
@@ -42,13 +42,22 @@
 
       <CheckBox Grid.Row="3" Grid.Column="1" x:Name="EnabledCheck" Content="Aktiv" Foreground="White" Margin="0,10,0,0" />
 
-      <TextBlock Grid.Row="4" Text="Programm:" VerticalAlignment="Center" Margin="0,10,10,0" />
-      <TextBox Grid.Row="4" Grid.Column="1" x:Name="CommandBox" Margin="0,10,0,0" Watermark="C:\\Programme\\Beispiel.exe" Foreground="White" Background="#FF555555" CaretBrush="White" />
+      <TextBlock Grid.Row="4" Text="Modus:" VerticalAlignment="Center" Margin="0,10,10,0" />
+      <ComboBox Grid.Row="4" Grid.Column="1" x:Name="ModeCombo" Background="#FF3D3D3D" Foreground="White" Margin="0,10,0,0" />
 
-      <TextBlock Grid.Row="5" Text="Argumente:" VerticalAlignment="Center" Margin="0,10,10,0" />
-      <TextBox Grid.Row="5" Grid.Column="1" x:Name="ArgumentsBox" Margin="0,10,0,0" Watermark="Parameter" Foreground="White" Background="#FF555555" CaretBrush="White" />
+      <TextBlock Grid.Row="5" Text="Alarmton:" VerticalAlignment="Center" Margin="0,10,10,0" />
+      <Grid Grid.Row="5" Grid.Column="1" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+        <TextBox x:Name="SoundFileBox" Watermark="MP3/WAV/..." Foreground="White" Background="#FF555555" CaretBrush="White" />
+        <Button x:Name="BrowseSoundButton" Grid.Column="1" Content="Durchsuchen" Foreground="White" Background="#FF555555" ClickMode="Press" Margin="8,0,0,0" />
+      </Grid>
 
-      <Button Grid.Row="6" Grid.Column="1" x:Name="SaveButton" Content="Speichern" HorizontalAlignment="Right" Margin="0,15,0,0" Foreground="White" Background="#FF555555" ClickMode="Press" HorizontalContentAlignment="Center" />
+      <TextBlock Grid.Row="6" Text="Programm:" VerticalAlignment="Center" Margin="0,10,10,0" />
+      <TextBox Grid.Row="6" Grid.Column="1" x:Name="CommandBox" Margin="0,10,0,0" Watermark="C:\\Programme\\Beispiel.exe" Foreground="White" Background="#FF555555" CaretBrush="White" />
+
+      <TextBlock Grid.Row="7" Text="Argumente:" VerticalAlignment="Center" Margin="0,10,10,0" />
+      <TextBox Grid.Row="7" Grid.Column="1" x:Name="ArgumentsBox" Margin="0,10,0,0" Watermark="Parameter" Foreground="White" Background="#FF555555" CaretBrush="White" />
+
+      <Button Grid.Row="8" Grid.Column="1" x:Name="SaveButton" Content="Speichern" HorizontalAlignment="Right" Margin="0,15,0,0" Foreground="White" Background="#FF555555" ClickMode="Press" HorizontalContentAlignment="Center" />
     </Grid>
   </Grid>
 </Window>

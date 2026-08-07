@@ -1,0 +1,14 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AnalogClock.InfoWindow"
+        Title="Info"
+        Width="620" Height="540"
+        Background="#FF2D2D2D"
+        Foreground="White"
+        Topmost="True"
+        CanResize="True"
+        WindowStartupLocation="CenterScreen">
+  <ScrollViewer Margin="20">
+    <TextBlock x:Name="EulaText" Foreground="White" TextWrapping="Wrap" xml:space="preserve" />
+  </ScrollViewer>
+</Window>

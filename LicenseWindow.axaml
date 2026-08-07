@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AnalogClock.LicenseWindow"
+        Title="Lizenz"
+        Width="620" Height="220"
+        Background="#FF2D2D2D"
+        Foreground="White"
+        Topmost="True"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+    <TextBlock Grid.Row="0" Grid.ColumnSpan="11" Text="Bitte geben Sie Ihren Lizenzschlüssel ein:" FontSize="16" Margin="0,0,0,15" />
+
+    <TextBox Grid.Row="1" Grid.Column="0" x:Name="Part1Box" MaxLength="4" Width="70" TabIndex="0" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="White" Background="#FF555555" CaretBrush="White" Margin="0,0,4,0" />
+    <TextBlock Grid.Row="1" Grid.Column="1" Text="-" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="18" Margin="0,0,4,0" />
+    <TextBox Grid.Row="1" Grid.Column="2" x:Name="Part2Box" MaxLength="4" Width="70" TabIndex="1" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="White" Background="#FF555555" CaretBrush="White" Margin="0,0,4,0" />
+    <TextBlock Grid.Row="1" Grid.Column="3" Text="-" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="18" Margin="0,0,4,0" />
+    <TextBox Grid.Row="1" Grid.Column="4" x:Name="Part3Box" MaxLength="4" Width="70" TabIndex="2" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="White" Background="#FF555555" CaretBrush="White" Margin="0,0,4,0" />
+    <TextBlock Grid.Row="1" Grid.Column="5" Text="-" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="18" Margin="0,0,4,0" />
+    <TextBox Grid.Row="1" Grid.Column="6" x:Name="Part4Box" MaxLength="4" Width="70" TabIndex="3" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="White" Background="#FF555555" CaretBrush="White" Margin="0,0,4,0" />
+    <TextBlock Grid.Row="1" Grid.Column="7" Text="-" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="18" Margin="0,0,4,0" />
+    <TextBox Grid.Row="1" Grid.Column="8" x:Name="Part5Box" MaxLength="4" Width="70" TabIndex="4" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="White" Background="#FF555555" CaretBrush="White" Margin="0,0,4,0" />
+    <TextBlock Grid.Row="1" Grid.Column="9" Text="-" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="18" Margin="0,0,4,0" />
+    <TextBox Grid.Row="1" Grid.Column="10" x:Name="Part6Box" MaxLength="5" Width="80" TabIndex="5" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Foreground="White" Background="#FF555555" CaretBrush="White" />
+
+    <TextBlock Grid.Row="2" Grid.ColumnSpan="11" x:Name="StatusText" Text="" Foreground="#FFFF6666" Margin="0,10,0,0" />
+
+    <Button Grid.Row="3" Grid.ColumnSpan="11" x:Name="ActivateButton" Content="Aktivieren" HorizontalAlignment="Center" Margin="0,15,0,0" Foreground="White" Background="#FF555555" Click="ActivateButton_Click" ClickMode="Press" />
+  </Grid>
+</Window>

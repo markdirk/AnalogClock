@@ -1,9 +1,13 @@
 using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 
 namespace AnalogClock;
 
@@ -13,6 +17,21 @@ public partial class AlarmWindow : Window
     private Alarm? _currentAlarm;
     private bool _isNew;
     private CheckBox[] _dayChecks = Array.Empty<CheckBox>();
+
+    private class ModeOption
+    {
+        public string Display { get; set; } = string.Empty;
+        public AlarmMode Mode { get; set; }
+        public override string ToString() => Display;
+    }
+
+    private static readonly ModeOption[] ModeOptions = new[]
+    {
+        new ModeOption { Display = "Standard (Ton + blinkend)", Mode = AlarmMode.Default },
+        new ModeOption { Display = "Still (nur blinkendes Panel)", Mode = AlarmMode.Visual },
+        new ModeOption { Display = "Akustisch (Ton, kein Blinken)", Mode = AlarmMode.AcousticNoBlink },
+        new ModeOption { Display = "Hintergrund (kein Panel)", Mode = AlarmMode.Background }
+    };
 
     public AlarmWindow()
     {
@@ -103,9 +122,12 @@ public partial class AlarmWindow : Window
         AlarmList.DisplayMemberBinding = new Binding("DisplayText");
         AlarmList.SelectionChanged += OnSelectionChanged;
 
+        ModeCombo.ItemsSource = ModeOptions;
+
         AddButton.Click += AddButton_Click;
         DeleteButton.Click += DeleteButton_Click;
         SaveButton.Click += SaveButton_Click;
+        BrowseSoundButton.Click += BrowseSoundButton_Click;
 
         HourTensSpinner.ValueChanged += (_, _) => OnDigitChanged();
         HourOnesSpinner.ValueChanged += (_, _) => OnDigitChanged();
@@ -221,6 +243,8 @@ public partial class AlarmWindow : Window
         CommandBox.Text = alarm.Command;
         ArgumentsBox.Text = alarm.Arguments;
         EnabledCheck.IsChecked = alarm.Enabled;
+        ModeCombo.SelectedItem = ModeOptions.FirstOrDefault(m => m.Mode == alarm.Mode);
+        SoundFileBox.Text = alarm.SoundFile;
         _dayChecks[0].IsChecked = alarm.Monday;
         _dayChecks[1].IsChecked = alarm.Tuesday;
         _dayChecks[2].IsChecked = alarm.Wednesday;
@@ -251,6 +275,8 @@ public partial class AlarmWindow : Window
         alarm.Command = CommandBox.Text ?? string.Empty;
         alarm.Arguments = ArgumentsBox.Text ?? string.Empty;
         alarm.Enabled = EnabledCheck.IsChecked ?? false;
+        alarm.Mode = (ModeCombo.SelectedItem as ModeOption)?.Mode ?? AlarmMode.Default;
+        alarm.SoundFile = SoundFileBox.Text ?? string.Empty;
         alarm.Monday = _dayChecks[0].IsChecked ?? false;
         alarm.Tuesday = _dayChecks[1].IsChecked ?? false;
         alarm.Wednesday = _dayChecks[2].IsChecked ?? false;
@@ -258,5 +284,50 @@ public partial class AlarmWindow : Window
         alarm.Friday = _dayChecks[4].IsChecked ?? false;
         alarm.Saturday = _dayChecks[5].IsChecked ?? false;
         alarm.Sunday = _dayChecks[6].IsChecked ?? false;
+    }
+
+    private async void BrowseSoundButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_currentAlarm is null)
+        {
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Alarmton auswählen",
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Audiodateien")
+                {
+                    Patterns = new[] { "*.mp3", "*.wav", "*.ogg", "*.flac", "*.aac", "*.wma" }
+                },
+                new FilePickerFileType("Alle Dateien")
+                {
+                    Patterns = new[] { "*" }
+                }
+            }
+        });
+
+        if (files is null || files.Count == 0)
+        {
+            return;
+        }
+
+        var file = files[0];
+        var soundsDir = Path.Combine(_settings.GetBaseDirectory(), "Sounds");
+        Directory.CreateDirectory(soundsDir);
+
+        var relativeTarget = $"Sounds/{file.Name}";
+        var targetPath = Path.Combine(_settings.GetBaseDirectory(), relativeTarget);
+
+        if (file.TryGetLocalPath() is { } localPath && !string.Equals(localPath, targetPath, StringComparison.OrdinalIgnoreCase))
+        {
+            await using var sourceStream = await file.OpenReadAsync();
+            await using var targetStream = File.Create(targetPath);
+            await sourceStream.CopyToAsync(targetStream);
+        }
+
+        SoundFileBox.Text = relativeTarget;
     }
 }

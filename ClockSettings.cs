@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace AnalogClock;
@@ -12,10 +13,28 @@ public class ClockSettings
     public double? Top { get; set; }
     public double Width { get; set; } = 400;
     public double Height { get; set; } = 400;
+    public bool ClockVisible { get; set; } = true;
     public string SecondHandState { get; set; } = "Red";
+    public string TimeZoneId { get; set; } = "W. Europe Standard Time";
+    public bool IsLicensed { get; set; } = false;
+    public string LicenseKey { get; set; } = string.Empty;
     public ClockTheme CurrentTheme { get; set; } = new();
     public List<ClockTheme> Themes { get; set; } = new() { new() };
     public ObservableCollection<Alarm> Alarms { get; set; } = new();
+
+    public string GetBaseDirectory()
+    {
+        var assembly = System.Reflection.Assembly.GetEntryAssembly()?.Location;
+        return string.IsNullOrEmpty(assembly) ? AppContext.BaseDirectory : Path.GetDirectoryName(assembly)!;
+    }
+}
+
+public enum AlarmMode
+{
+    Default,
+    Visual,
+    AcousticNoBlink,
+    Background
 }
 
 public class Alarm : INotifyPropertyChanged
@@ -34,6 +53,8 @@ public class Alarm : INotifyPropertyChanged
     public bool Enabled { get; set; } = true;
     public string Command { get; set; } = string.Empty;
     public string Arguments { get; set; } = string.Empty;
+    public AlarmMode Mode { get; set; } = AlarmMode.Default;
+    public string SoundFile { get; set; } = string.Empty;
 
     public string DisplayText => ToString();
 
@@ -54,6 +75,13 @@ public class Alarm : INotifyPropertyChanged
         var days = new[] { Monday ? "Mo" : null, Tuesday ? "Di" : null, Wednesday ? "Mi" : null, Thursday ? "Do" : null, Friday ? "Fr" : null, Saturday ? "Sa" : null, Sunday ? "So" : null };
         var dayText = string.Join(", ", Array.FindAll(days, x => x is not null));
         if (string.IsNullOrEmpty(dayText)) dayText = "Einmal";
-        return $"{Hour:D2}:{Minute:D2} {dayText} - {Description}".TrimEnd(' ', '-');
+        var mode = Mode switch
+        {
+            AlarmMode.Visual => " [Still]",
+            AlarmMode.AcousticNoBlink => " [Akustisch]",
+            AlarmMode.Background => " [Hintergrund]",
+            _ => string.Empty
+        };
+        return $"{Hour:D2}:{Minute:D2} {dayText}{mode} - {Description}".TrimEnd(' ', '-');
     }
 }

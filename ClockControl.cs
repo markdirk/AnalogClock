@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -15,6 +17,9 @@ public class ClockControl : Control
     private Window? _window;
     private AlarmWindow? _alarmWindow;
     private ThemeWindow? _themeWindow;
+    private TimeZoneWindow? _timeZoneWindow;
+    private InfoWindow? _infoWindow;
+    private LicenseWindow? _licenseWindow;
     private DispatcherTimer? _timer;
     private ClockSettings _settings = new();
 
@@ -61,6 +66,7 @@ public class ClockControl : Control
     private int _lastAlarmMinute = -1;
     private DateTime _lastAlarmDate = DateTime.MinValue;
     private readonly HashSet<Guid> _triggeredThisMinute = new();
+    private List<TimeZoneItem> _timeZones = new();
 
     public ClockControl()
     {
@@ -74,6 +80,7 @@ public class ClockControl : Control
         _window = TopLevel.GetTopLevel(this) as Window;
 
         _settings = SettingsService.Load();
+        _timeZones = TimeZoneHelper.GetTimeZones();
         EnsureTheme();
         ApplyTheme();
 
@@ -162,11 +169,18 @@ public class ClockControl : Control
 
         menu.Items.Add(CreateMenuItem("Wecker", OpenAlarmWindow));
 
+        menu.Items.Add(CreateMenuItem("Zeitzone", OpenTimeZoneWindow));
+
         var themeItem = new MenuItem { Header = "Theme" };
         var themesSub = new MenuItem { Header = "Laden" };
         themeItem.Items.Add(themesSub);
         themeItem.Items.Add(CreateMenuItem("Bearbeiten...", OpenThemeWindow));
         menu.Items.Add(themeItem);
+
+        menu.Items.Add(CreateMenuItem("Uhr ausblenden", HideClockWindow));
+
+        menu.Items.Add(CreateMenuItem("Info", OpenInfoWindow));
+        menu.Items.Add(CreateMenuItem("Lizenz", OpenLicenseWindow));
 
         menu.Items.Add(CreateMenuItem("Beenden", ExitApplication));
 
@@ -225,11 +239,51 @@ public class ClockControl : Control
         {
             _settings.Themes.Add(_settings.CurrentTheme.Clone());
         }
+
+        if (_settings.Themes.Find(t => t.Name == "Icon") is null)
+        {
+            _settings.Themes.Add(CreateIconTheme());
+        }
     }
 
     private ClockTheme CreateDefaultTheme()
     {
         return new ClockTheme();
+    }
+
+    private ClockTheme CreateIconTheme()
+    {
+        return new ClockTheme
+        {
+            Name = "Icon",
+            FaceColor = "#FFFFFFFF",
+            BorderColor = "#FF000000",
+            NumberColor = "#FF000000",
+            HourHandColor = "#FF000000",
+            MinuteHandColor = "#FF000000",
+            SecondHandColor = "#FF000000",
+            TickColor = "#FF000000",
+            GripColor = "#FF808080",
+            FontName = "Segoe UI",
+            NumberFontScale = 1.0,
+            DateColor = "#FF000000",
+            DateFontName = "Segoe UI",
+            DateFontScale = 1.0,
+            TimeColor = "#FF000000",
+            TimeFontName = "Segoe UI",
+            TimeFontScale = 1.0,
+            SecondHandVisible = true,
+            HandsAboveInfo = false,
+            CenterDotBorderColor = "#FF000000",
+            DateBoxBackgroundColor = "#FFFFFFFF",
+            DateBoxBorderColor = "#FF000000",
+            DateBoxXOffset = 0.0,
+            DateBoxYOffset = 0.0,
+            TimeBoxBackgroundColor = "#FFFFFFFF",
+            TimeBoxBorderColor = "#FF000000",
+            TimeBoxXOffset = 0.0,
+            TimeBoxYOffset = 0.0
+        };
     }
 
     private void ApplyTheme()
@@ -383,6 +437,77 @@ public class ClockControl : Control
         InvalidateVisual();
     }
 
+    private void OpenTimeZoneWindow()
+    {
+        if (_window is null)
+        {
+            return;
+        }
+
+        if (_timeZoneWindow is not null)
+        {
+            _timeZoneWindow.Activate();
+            return;
+        }
+
+        _timeZoneWindow = new TimeZoneWindow(_settings);
+        _timeZoneWindow.Closed += (_, _) =>
+        {
+            _timeZoneWindow = null;
+            _timeZones = TimeZoneHelper.GetTimeZones();
+            SettingsService.Save(_settings);
+            InvalidateVisual();
+        };
+        _timeZoneWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+        _timeZoneWindow.PositionNextTo(_window);
+        _timeZoneWindow.Show();
+        _timeZoneWindow.Activate();
+        _timeZoneWindow.Topmost = false;
+        _timeZoneWindow.Topmost = true;
+    }
+
+    private void HideClockWindow()
+    {
+        _settings.ClockVisible = false;
+        SettingsService.Save(_settings);
+        App.SetClockVisible(false);
+    }
+
+    private void OpenInfoWindow()
+    {
+        if (_infoWindow is not null)
+        {
+            _infoWindow.Activate();
+            return;
+        }
+
+        _infoWindow = new InfoWindow();
+        _infoWindow.Closed += (_, _) => _infoWindow = null;
+        _infoWindow.Show();
+        _infoWindow.Activate();
+    }
+
+    private void OpenLicenseWindow()
+    {
+        if (_licenseWindow is not null)
+        {
+            _licenseWindow.Activate();
+            return;
+        }
+
+        _licenseWindow = new LicenseWindow(_settings);
+        _licenseWindow.Closed += (_, _) =>
+        {
+            _licenseWindow = null;
+            if (_settings.IsLicensed)
+            {
+                SettingsService.Save(_settings);
+            }
+        };
+        _licenseWindow.Show();
+        _licenseWindow.Activate();
+    }
+
     private void ExitApplication()
     {
         if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime)
@@ -483,7 +608,7 @@ public class ClockControl : Control
 
     private void CheckAlarms()
     {
-        var now = DateTime.Now;
+        var now = GetClockTime();
 
         if (now.Date != _lastAlarmDate.Date || now.Hour != _lastAlarmHour || now.Minute != _lastAlarmMinute)
         {
@@ -541,7 +666,7 @@ public class ClockControl : Control
         {
             try
             {
-                Process.Start(new System.Diagnostics.ProcessStartInfo(alarm.Command, alarm.Arguments)
+                Process.Start(new ProcessStartInfo(alarm.Command, alarm.Arguments)
                 {
                     UseShellExecute = true,
                     CreateNoWindow = false
@@ -553,15 +678,57 @@ public class ClockControl : Control
             }
         }
 
-        var owner = _alarmWindow ?? _window;
-        if (owner is null)
+        var soundPath = ResolveSoundPath(alarm.SoundFile);
+        var shouldPlaySound = alarm.Mode != AlarmMode.Visual && !string.IsNullOrWhiteSpace(soundPath);
+        var shouldShowPanel = alarm.Mode != AlarmMode.Background;
+        var shouldBlink = alarm.Mode == AlarmMode.Default || alarm.Mode == AlarmMode.Visual;
+
+        CancellationTokenSource? soundCts = null;
+        if (shouldPlaySound)
         {
+            soundCts = new CancellationTokenSource();
+            AudioPlayer.PlayAsync(soundPath, soundCts.Token);
+        }
+
+        if (!shouldShowPanel)
+        {
+            soundCts?.Dispose();
             return;
         }
 
-        var alert = new AlarmAlertWindow(alarm.Description);
+        var owner = _alarmWindow ?? _window;
+        if (owner is null)
+        {
+            soundCts?.Cancel();
+            soundCts?.Dispose();
+            return;
+        }
+
+        var alert = new AlarmAlertWindow(alarm.Description, shouldBlink);
+        alert.Closed += (_, _) =>
+        {
+            soundCts?.Cancel();
+            soundCts?.Dispose();
+        };
         alert.Show(owner);
         alert.Activate();
+    }
+
+    private string? ResolveSoundPath(string? soundFile)
+    {
+        if (string.IsNullOrWhiteSpace(soundFile))
+        {
+            return null;
+        }
+
+        if (File.Exists(soundFile))
+        {
+            return soundFile;
+        }
+
+        var baseDir = _settings.GetBaseDirectory();
+        var combined = Path.Combine(baseDir, soundFile);
+        return File.Exists(combined) ? combined : null;
     }
 
     public override void Render(DrawingContext context)
@@ -602,7 +769,7 @@ public class ClockControl : Control
 
         DrawTicks(context, cx, cy, radius);
 
-        var now = DateTime.Now;
+        var now = GetClockTime();
         var hour = now.Hour % 12;
         var minute = now.Minute;
         var second = now.Second;
@@ -621,9 +788,11 @@ public class ClockControl : Control
 
         DrawNumbers(context, cx, cy, radius, now.Hour);
 
+        var city = GetSelectedCity();
+
         if (_handsAboveInfo)
         {
-            DrawTime(context, cx, cy, radius, now);
+            DrawTime(context, cx, cy, radius, now, city);
             DrawDate(context, cx, cy, radius, now);
             DrawHand(context, cx, cy, hourAngle, hourLength, hourWidth, _hourHandBrush ?? Brushes.White);
             DrawHand(context, cx, cy, minuteAngle, minuteLength, minuteWidth, _minuteHandBrush ?? Brushes.White);
@@ -661,7 +830,7 @@ public class ClockControl : Control
 
             DrawCenterDot(context, cx, cy, hourWidth);
 
-            DrawTime(context, cx, cy, radius, now);
+            DrawTime(context, cx, cy, radius, now, city);
             DrawDate(context, cx, cy, radius, now);
         }
 
@@ -779,17 +948,25 @@ public class ClockControl : Control
         }
     }
 
-    private void DrawTime(DrawingContext context, double cx, double cy, double radius, DateTime now)
+    private void DrawTime(DrawingContext context, double cx, double cy, double radius, DateTime now, string city)
     {
-        var fontSize = radius * 0.10 * _timeFontScale;
-        var typeface = new Typeface(_timeFont, FontStyle.Normal, FontWeight.Bold);
+        var cityFontSize = radius * 0.06 * _timeFontScale;
+        var cityTypeface = new Typeface(_timeFont, FontStyle.Normal, FontWeight.Bold);
+        var cityFt = new FormattedText(city, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, cityTypeface, cityFontSize, _timeBrush ?? Brushes.White);
+
+        var timeFontSize = radius * 0.10 * _timeFontScale;
+        var timeTypeface = new Typeface(_timeFont, FontStyle.Normal, FontWeight.Bold);
         var text = now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-        var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, _timeBrush ?? Brushes.White);
+        var timeFt = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, timeTypeface, timeFontSize, _timeBrush ?? Brushes.White);
+
+        var spacing = radius * 0.005;
+        var totalHeight = cityFt.Height + spacing + timeFt.Height;
+        var maxWidth = Math.Max(cityFt.Width, timeFt.Width);
 
         var paddingX = radius * 0.04;
-        var paddingY = radius * 0.01;
-        var boxWidth = ft.Width + 2 * paddingX;
-        var boxHeight = ft.Height + 2 * paddingY;
+        var paddingY = radius * 0.015;
+        var boxWidth = maxWidth + 2 * paddingX;
+        var boxHeight = totalHeight + 2 * paddingY;
         var defaultX = cx - boxWidth / 2.0;
         var defaultY = cy - radius * 0.28 - boxHeight / 2.0;
         var boxX = defaultX + _timeBoxXOffset;
@@ -797,7 +974,10 @@ public class ClockControl : Control
 
         DrawRoundedRect(context, boxX, boxY, boxWidth, boxHeight, radius * 0.025, _timeBoxBgBrush, _timeBoxBorderBrush, radius * 0.003);
 
-        context.DrawText(ft, new Point(boxX + paddingX, boxY + paddingY));
+        var textX = boxX + paddingX;
+        var textTop = boxY + paddingY;
+        context.DrawText(cityFt, new Point(textX + (maxWidth - cityFt.Width) / 2.0, textTop));
+        context.DrawText(timeFt, new Point(textX + (maxWidth - timeFt.Width) / 2.0, textTop + cityFt.Height + spacing));
     }
 
     private void DrawDate(DrawingContext context, double cx, double cy, double radius, DateTime now)
@@ -929,5 +1109,33 @@ public class ClockControl : Control
         var dx = a.X - b.X;
         var dy = a.Y - b.Y;
         return Math.Sqrt(dx * dx + dy * dy);
+    }
+
+    private DateTime GetClockTime()
+    {
+        var now = DateTime.Now;
+        return TimeZoneHelper.ConvertToTimeZone(now, _settings.TimeZoneId);
+    }
+
+    private string GetSelectedCity()
+    {
+        if (_timeZones.Count == 0)
+        {
+            _timeZones = TimeZoneHelper.GetTimeZones();
+        }
+
+        if (string.IsNullOrWhiteSpace(_settings.TimeZoneId))
+        {
+            return "Berlin";
+        }
+
+        var item = TimeZoneHelper.FindItem(_settings.TimeZoneId, _timeZones);
+        if (item is not null)
+        {
+            return item.City;
+        }
+
+        var tz = TimeZoneHelper.FindTimeZone(_settings.TimeZoneId);
+        return tz is not null ? TimeZoneHelper.GetCity(tz) : "Berlin";
     }
 }

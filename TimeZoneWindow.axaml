@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AnalogClock.TimeZoneWindow"
+        Title="Zeitzone"
+        Width="420" Height="520"
+        Background="#FF2D2D2D"
+        Foreground="White"
+        Topmost="True"
+        CanResize="True"
+        WindowStartupLocation="Manual">
+  <Grid Margin="15" RowDefinitions="Auto,*,Auto">
+    <TextBlock Text="Zeitzone" FontSize="22" Margin="0,0,0,10" />
+    <ListBox Grid.Row="1" x:Name="ZoneList" Background="#FF3D3D3D" Foreground="White" Margin="0,0,0,10" />
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+      <Button x:Name="ApplyButton" Content="Übernehmen" Foreground="White" Background="#FF555555" ClickMode="Press" />
+      <Button x:Name="CancelButton" Content="Abbrechen" Foreground="White" Background="#FF555555" ClickMode="Press" />
+    </StackPanel>
+  </Grid>
+</Window>
