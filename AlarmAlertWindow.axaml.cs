@@ -38,16 +38,6 @@ public partial class AlarmAlertWindow : Window
             Close();
         };
 
-        RootBorder!.PointerPressed += (_, e) =>
-        {
-            if (e.Source is TextBlock)
-            {
-                return;
-            }
-            e.Handled = true;
-            Close();
-        };
-
         Closed += (_, _) =>
         {
             _blinkTimer?.Stop();

@@ -741,11 +741,11 @@ public class ClockControl : Control
             if (shouldShowPanel)
             {
                 soundCts = new CancellationTokenSource();
-                AudioPlayer.PlayAsync(soundPath, soundCts.Token);
+                AudioPlayer.PlayAsync(soundPath, soundCts.Token, loop: true);
             }
             else
             {
-                _ = AudioPlayer.PlayAsync(soundPath, CancellationToken.None);
+                _ = AudioPlayer.PlayAsync(soundPath, CancellationToken.None, loop: false);
             }
         }
 

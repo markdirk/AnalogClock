@@ -8,18 +8,49 @@ namespace AnalogClock;
 
 public static class AudioPlayer
 {
-    public static void Play(string? filePath, CancellationToken cancellationToken = default)
+    public static void Play(string? filePath, CancellationToken cancellationToken = default, bool loop = true)
     {
-        PlayBlocking(filePath, cancellationToken);
+        if (loop)
+        {
+            PlayLoop(filePath, cancellationToken);
+        }
+        else
+        {
+            PlayOnce(filePath, cancellationToken);
+        }
     }
 
-    public static Task PlayAsync(string? filePath, CancellationToken cancellationToken = default)
+    public static Task PlayAsync(string? filePath, CancellationToken cancellationToken = default, bool loop = true)
     {
-        return Task.Run(() => PlayBlocking(filePath, cancellationToken), cancellationToken);
+        return loop
+            ? Task.Run(() => PlayLoop(filePath, cancellationToken), cancellationToken)
+            : Task.Run(() => PlayOnce(filePath, cancellationToken), cancellationToken);
     }
 
-    private static void PlayBlocking(string? filePath, CancellationToken cancellationToken)
+    private static void PlayLoop(string? filePath, CancellationToken cancellationToken)
     {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            if (!PlayOnce(filePath, cancellationToken))
+            {
+                return;
+            }
+
+            // Small pause between repetitions.
+            if (cancellationToken.WaitHandle.WaitOne(1000))
+            {
+                return;
+            }
+        }
+    }
+
+    private static bool PlayOnce(string? filePath, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+
         if (!string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath))
         {
             try
@@ -29,12 +60,14 @@ public static class AudioPlayer
                 using var reg = cancellationToken.Register(() => output.Stop());
                 output.Init(reader);
                 output.Play();
-                while (!cancellationToken.IsCancellationRequested && output.PlaybackState == PlaybackState.Playing)
+
+                while (!cancellationToken.IsCancellationRequested &&
+                       output.PlaybackState == PlaybackState.Playing)
                 {
-                    Thread.Sleep(50);
+                    cancellationToken.WaitHandle.WaitOne(50);
                 }
 
-                return;
+                return !cancellationToken.IsCancellationRequested;
             }
             catch
             {
@@ -53,5 +86,7 @@ public static class AudioPlayer
         {
             // ignore
         }
+
+        return !cancellationToken.IsCancellationRequested;
     }
 }
