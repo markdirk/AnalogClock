@@ -205,6 +205,20 @@ public partial class AlarmWindow : Window
         return TimeZoneHelper.ConvertToTimeZone(DateTime.Now, _settings.TimeZoneId).Date;
     }
 
+    private void ConfigureDatePicker(DatePicker picker, DateTimeOffset? initial = null)
+    {
+        picker.DayFormat = "dd";
+        picker.MonthFormat = "MMMM";
+        picker.YearFormat = "yyyy";
+        picker.HorizontalAlignment = HorizontalAlignment.Left;
+        picker.Resources["DatePickerThemeMinWidth"] = 170.0;
+        picker.Resources["DatePickerThemeMaxWidth"] = 260.0;
+        if (initial.HasValue)
+        {
+            picker.SelectedDate = initial.Value;
+        }
+    }
+
     private void SetupControls()
     {
         AlarmList.ItemsSource = _settings.Alarms;
@@ -694,13 +708,8 @@ public partial class AlarmWindow : Window
         }
 
         var today = GetTodayForSettings();
-        _specificDatePicker = new DatePicker
-        {
-            DayFormat = "dd",
-            MonthFormat = "MMMM",
-            YearFormat = "yyyy",
-            SelectedDate = new DateTimeOffset(today)
-        };
+        _specificDatePicker = new DatePicker();
+        ConfigureDatePicker(_specificDatePicker, new DateTimeOffset(today));
 
         var addButton = new Button
         {
@@ -936,18 +945,14 @@ public partial class AlarmWindow : Window
         _intervalUnitCombo.DisplayMemberBinding = new Binding("Display");
         _intervalUnitCombo.SelectedItem = UnitOptions.FirstOrDefault(u => u.Unit == _selectedRule.IntervalUnit);
 
-        _startDatePicker = new DatePicker
-        {
-            DayFormat = "dd",
-            MonthFormat = "MMMM",
-            YearFormat = "yyyy"
-        };
+        _startDatePicker = new DatePicker();
         if (_selectedRule.IntervalStart.HasValue)
         {
-            _startDatePicker.SelectedDate = new DateTimeOffset(_selectedRule.IntervalStart.Value);
+            ConfigureDatePicker(_startDatePicker, new DateTimeOffset(_selectedRule.IntervalStart.Value));
         }
         else
         {
+            ConfigureDatePicker(_startDatePicker);
             _startDatePicker.SelectedDate = new DateTimeOffset(GetTodayForSettings());
         }
 
