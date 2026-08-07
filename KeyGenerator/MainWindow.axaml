@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AnalogClock.KeyGenerator.MainWindow"
+        Title="KeyGenerator"
+        Width="1100"
+        Height="600"
+        Background="#FF2D2D2D">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="10">
+            <TextBlock Text="Anzahl:" Foreground="White" VerticalAlignment="Center" />
+            <TextBox x:Name="CountBox" Text="1" Width="60" Foreground="White" Background="#FF3D3D3D" CaretBrush="White" VerticalAlignment="Center" />
+            <Button x:Name="GenerateButton" Content="Generieren" Foreground="White" Background="#FF555555" />
+            <Button x:Name="SaveButton" Content="Speichern" Foreground="White" Background="#FF555555" />
+            <Button x:Name="RestoreBackupButton" Content="Backup wiederherstellen" Foreground="White" Background="#FF555555" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="1" x:Name="StatusText" Text="Bereit" Foreground="White" Margin="10,0" />
+
+        <Border Grid.Row="2" Background="#FF3D3D3D" Margin="10" Padding="5" CornerRadius="3">
+            <DataGrid x:Name="RecordsGrid"
+                      AutoGenerateColumns="False"
+                      CanUserReorderColumns="False"
+                      CanUserResizeColumns="True"
+                      IsReadOnly="False"
+                      GridLinesVisibility="All"
+                      Background="#FF3D3D3D"
+                      Foreground="White"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Lizenzschlüssel" Binding="{Binding Key, Mode=OneWay}" IsReadOnly="True" Width="360" />
+                    <DataGridTextColumn Header="Erzeugt am" Binding="{Binding CreatedAt, StringFormat=dd.MM.yyyy HH:mm, Mode=OneWay}" IsReadOnly="True" Width="165" />
+                    <DataGridTextColumn Header="Kunde" Binding="{Binding CustomerName, Mode=TwoWay}" Width="*" />
+                    <DataGridTextColumn Header="Rechnungsnr." Binding="{Binding InvoiceNumber, Mode=TwoWay}" Width="*" />
+                    <DataGridTextColumn Header="Rechnungspos." Binding="{Binding InvoicePosition, Mode=TwoWay}" Width="*" />
+                    <DataGridTemplateColumn Header="" Width="90">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Löschen" Width="80" Click="DeleteButton_Click" Background="#FF555555" Foreground="White" Padding="8,2" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <TextBlock Grid.Row="3" x:Name="RecordCountText" Text="0 Schlüssel" Foreground="White" HorizontalAlignment="Right" Margin="10" />
+    </Grid>
+</Window>

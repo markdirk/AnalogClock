@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,6 +9,9 @@ namespace AnalogClock;
 public static class LicenseKey
 {
     public const string DeveloperKey = "APZ3-TQE3-248A-5KW8-YCBW-J5F8G";
+
+    // Base32 alphabet without visually ambiguous characters 0, O, I, L
+    private const string Alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ123456789";
 
     private static readonly byte[] Secret = DeriveSecret();
 
@@ -22,8 +26,8 @@ public static class LicenseKey
         return Rfc2898DeriveBytes.Pbkdf2(password, salt, 100_000, HashAlgorithmName.SHA256, 32);
     }
 
-    private const int SerialLength = 6;
-    private const int SignatureLength = 6;
+    private const int SerialLength = 7;
+    private const int SignatureLength = 8;
 
     public static string Generate()
     {
@@ -34,7 +38,7 @@ public static class LicenseKey
         Buffer.BlockCopy(serial, 0, keyBytes, 0, SerialLength);
         Buffer.BlockCopy(signature, 0, keyBytes, SerialLength, SignatureLength);
 
-        return FormatKey(Convert.ToHexString(keyBytes));
+        return FormatKey(ToBase32(keyBytes));
     }
 
     public static bool Verify(string? key)
@@ -50,14 +54,18 @@ public static class LicenseKey
         }
 
         var compact = key.Replace("-", string.Empty).ToUpperInvariant();
-        if (compact.Length != (SerialLength + SignatureLength) * 2 || !IsHex(compact))
+        if (compact.Length != (SerialLength + SignatureLength) * 8 / 5 || !IsValidKey(compact))
         {
             return false;
         }
 
         try
         {
-            var bytes = Convert.FromHexString(compact);
+            if (!TryFromBase32(compact, out var bytes) || bytes.Length != SerialLength + SignatureLength)
+            {
+                return false;
+            }
+
             var serial = new byte[SerialLength];
             var signature = new byte[SignatureLength];
             Buffer.BlockCopy(bytes, 0, serial, 0, SerialLength);
@@ -112,13 +120,75 @@ public static class LicenseKey
         return result;
     }
 
-    private static string FormatKey(string hex)
+    private static string FormatKey(string chars)
     {
-        return $"{hex[..4]}-{hex[4..8]}-{hex[8..12]}-{hex[12..16]}-{hex[16..20]}-{hex[20..24]}";
+        return $"{chars[..4]}-{chars[4..8]}-{chars[8..12]}-{chars[12..16]}-{chars[16..20]}-{chars[20..24]}";
     }
 
-    private static bool IsHex(string value)
+    private static bool IsValidKey(string value)
     {
-        return value.All(c => char.IsDigit(c) || (c >= 'A' && c <= 'F'));
+        return value.All(c => Alphabet.Contains(c));
+    }
+
+    private static string ToBase32(byte[] data)
+    {
+        if (data == null || data.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var result = new StringBuilder();
+        int bits = 0;
+        int bitCount = 0;
+
+        foreach (var b in data)
+        {
+            bits = (bits << 8) | b;
+            bitCount += 8;
+
+            while (bitCount >= 5)
+            {
+                var index = (bits >> (bitCount - 5)) & 31;
+                result.Append(Alphabet[index]);
+                bitCount -= 5;
+            }
+        }
+
+        if (bitCount > 0)
+        {
+            var index = (bits << (5 - bitCount)) & 31;
+            result.Append(Alphabet[index]);
+        }
+
+        return result.ToString();
+    }
+
+    private static bool TryFromBase32(string value, out byte[] bytes)
+    {
+        bytes = Array.Empty<byte>();
+        using var stream = new MemoryStream();
+        int bits = 0;
+        int bitCount = 0;
+
+        foreach (var c in value)
+        {
+            var index = Alphabet.IndexOf(c);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            bits = (bits << 5) | index;
+            bitCount += 5;
+
+            while (bitCount >= 8)
+            {
+                stream.WriteByte((byte)((bits >> (bitCount - 8)) & 0xFF));
+                bitCount -= 8;
+            }
+        }
+
+        bytes = stream.ToArray();
+        return true;
     }
 }

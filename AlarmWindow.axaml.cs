@@ -561,7 +561,7 @@ public partial class AlarmWindow : Window
             case RecurrenceType.MonthlyWeekday:
                 _selectedRule.MonthWeekday = (_weekdayCombo?.SelectedItem as WeekdayOption)?.Day;
                 _selectedRule.MonthWeekdayOrdinal = (_ordinalCombo?.SelectedItem as OrdinalOption)?.Ordinal ?? 1;
-                _selectedRule.MonthWeekdayBeforeLastDay = _beforeLastCheck?.IsChecked ?? false;
+                _selectedRule.MonthWeekdayBeforeLastDay = _selectedRule.MonthWeekdayOrdinal > 0 ? false : (_beforeLastCheck?.IsChecked ?? false);
                 break;
 
             case RecurrenceType.Interval:
@@ -828,7 +828,8 @@ public partial class AlarmWindow : Window
             ItemsSource = OrdinalOptions
         };
         _ordinalCombo.DisplayMemberBinding = new Binding("Display");
-        _ordinalCombo.SelectedItem = OrdinalOptions.FirstOrDefault(o => o.Ordinal == _selectedRule.MonthWeekdayOrdinal);
+        var ordinalOption = OrdinalOptions.FirstOrDefault(o => o.Ordinal == _selectedRule.MonthWeekdayOrdinal) ?? OrdinalOptions.First(o => o.Ordinal > 0);
+        _ordinalCombo.SelectedItem = ordinalOption;
 
         _weekdayCombo = new ComboBox
         {
@@ -861,6 +862,7 @@ public partial class AlarmWindow : Window
             {
                 _beforeLastCheck.IsEnabled = false;
                 _beforeLastCheck.IsChecked = false;
+                _selectedRule.MonthWeekdayBeforeLastDay = false;
             }
             else
             {
