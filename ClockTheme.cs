@@ -21,7 +21,7 @@ public class ClockTheme
     public double TimeFontScale { get; set; } = 1.0;
     public bool SecondHandVisible { get; set; } = true;
 
-    public bool HandsAboveInfo { get; set; } = false;
+    public bool HandsAboveInfo { get; set; } = true;
 
     public string CenterDotBorderColor { get; set; } = "#ff0d0d0d";
 

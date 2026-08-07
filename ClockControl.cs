@@ -315,7 +315,7 @@ public class ClockControl : Control
             TimeFontName = "Segoe UI",
             TimeFontScale = 1.0,
             SecondHandVisible = true,
-            HandsAboveInfo = false,
+            HandsAboveInfo = true,
             CenterDotBorderColor = "#FF000000",
             DateBoxBackgroundColor = "#FFFFFFFF",
             DateBoxBorderColor = "#FF000000",
@@ -731,20 +731,26 @@ public class ClockControl : Control
         }
 
         var soundPath = ResolveSoundPath(alarm.SoundFile);
-        var shouldPlaySound = alarm.Mode != AlarmMode.Visual && !string.IsNullOrWhiteSpace(soundPath);
+        var shouldPlaySound = alarm.Mode != AlarmMode.Visual;
         var shouldShowPanel = alarm.Mode != AlarmMode.Background;
         var shouldBlink = alarm.Mode == AlarmMode.Default || alarm.Mode == AlarmMode.Visual;
 
         CancellationTokenSource? soundCts = null;
         if (shouldPlaySound)
         {
-            soundCts = new CancellationTokenSource();
-            AudioPlayer.PlayAsync(soundPath, soundCts.Token);
+            if (shouldShowPanel)
+            {
+                soundCts = new CancellationTokenSource();
+                AudioPlayer.PlayAsync(soundPath, soundCts.Token);
+            }
+            else
+            {
+                _ = AudioPlayer.PlayAsync(soundPath, CancellationToken.None);
+            }
         }
 
         if (!shouldShowPanel)
         {
-            soundCts?.Dispose();
             return;
         }
 
@@ -756,14 +762,8 @@ public class ClockControl : Control
             return;
         }
 
-        var alert = new AlarmAlertWindow(alarm.Description, shouldBlink);
-        alert.Closed += (_, _) =>
-        {
-            soundCts?.Cancel();
-            soundCts?.Dispose();
-        };
-        alert.Show(owner);
-        alert.Activate();
+        var now = GetClockTime();
+        AlarmAlertWindow.ShowAlert(owner, _settings.CurrentTheme, alarm.Description, now, shouldBlink, soundCts);
     }
 
     private string? ResolveSoundPath(string? soundFile)
@@ -1097,11 +1097,15 @@ public class ClockControl : Control
 
     private static Geometry CreateRoundedRectGeometry(Rect rect, double r)
     {
-        var geometry = new PathGeometry();
+        var geometry = new PathGeometry
+        {
+            Figures = new PathFigures()
+        };
         var figure = new PathFigure
         {
             StartPoint = new Point(rect.X + r, rect.Y),
-            IsClosed = true
+            IsClosed = true,
+            Segments = new PathSegments()
         };
 
         figure.Segments.Add(new LineSegment { Point = new Point(rect.X + rect.Width - r, rect.Y) });

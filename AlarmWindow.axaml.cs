@@ -200,6 +200,11 @@ public partial class AlarmWindow : Window
         Position = new PixelPoint(x, y);
     }
 
+    private DateTime GetTodayForSettings()
+    {
+        return TimeZoneHelper.ConvertToTimeZone(DateTime.Now, _settings.TimeZoneId).Date;
+    }
+
     private void SetupControls()
     {
         AlarmList.ItemsSource = _settings.Alarms;
@@ -688,10 +693,14 @@ public partial class AlarmWindow : Window
             _specificDatesList.Items.Add(date.ToString("dd.MM.yyyy"));
         }
 
+        var today = GetTodayForSettings();
         _specificDatePicker = new DatePicker
         {
-            Width = 150,
-            SelectedDate = new DateTimeOffset(DateTime.Today)
+            Width = 120,
+            DayFormat = "dd",
+            MonthFormat = "MM",
+            YearFormat = "yyyy",
+            SelectedDate = new DateTimeOffset(today)
         };
 
         var addButton = new Button
@@ -709,7 +718,7 @@ public partial class AlarmWindow : Window
             }
 
             var date = selected.DateTime.Date;
-            if (date < DateTime.Today)
+            if (date < GetTodayForSettings())
             {
                 return;
             }
@@ -930,11 +939,18 @@ public partial class AlarmWindow : Window
 
         _startDatePicker = new DatePicker
         {
-            Width = 150
+            Width = 120,
+            DayFormat = "dd",
+            MonthFormat = "MM",
+            YearFormat = "yyyy"
         };
         if (_selectedRule.IntervalStart.HasValue)
         {
             _startDatePicker.SelectedDate = new DateTimeOffset(_selectedRule.IntervalStart.Value);
+        }
+        else
+        {
+            _startDatePicker.SelectedDate = new DateTimeOffset(GetTodayForSettings());
         }
 
         var weekdayPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, IsVisible = _selectedRule.IntervalUnit == RecurrenceUnit.Weeks };

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia.Controls;
 
 namespace AnalogClock;
@@ -7,10 +8,11 @@ public partial class InfoWindow : Window
     public InfoWindow()
     {
         InitializeComponent();
-        EulaText!.Text = @"Lizenzbedingungen / Endbenutzer-Lizenzvereinbarung (EULA)
+        var version = typeof(InfoWindow).Assembly.GetName().Version?.ToString(3) ?? "1.4.3";
+        EulaText!.Text = $@"Lizenzbedingungen / Endbenutzer-Lizenzvereinbarung (EULA)
 
 Lizenzgeber: Marc Warzecha
-Lizenzgegenstand ist die Software AnalogClock Version 1.0 bestehend aus:
+Lizenzgegenstand ist die Software AnalogClock Version {version} bestehend aus:
 1. einer digitalen Analoguhr, die die aktuelle Systemzeit anzeigt,
 2. einer Alarmfunktion, die das Auslösen von Alarmen zu frei definierbaren Zeitpunkten ermöglicht,
 3. einem zeitgesteuerten Programmstarter, der zu festgelegten Zeiten externe Programme automatisch ausführt und dabei optional benutzerdefinierte Startparameter übergeben kann.
@@ -52,7 +54,7 @@ Alle Urheberrechte, Verwertungsrechte, Bearbeitungsrechte und das Recht zur Weit
 Der Lizenznehmer erhält ausschließlich ein Nutzungsrecht gemäß dieser Vereinbarung.
 
 8. Gewährleistung und Haftung
-Die Software wird „wie bereitgestellt"" geliefert.
+Die Software wird ""wie bereitgestellt"" geliefert.
 Der Lizenzgeber übernimmt keine Gewähr für:
 - Fehlerfreiheit,
 - bestimmte Funktionen,

@@ -5,12 +5,37 @@
         CanResize="False"
         Topmost="True"
         WindowStartupLocation="CenterOwner"
-        Width="400" Height="200"
-        Background="#FF2D2D2D">
-  <Grid>
-    <TextBlock x:Name="DescriptionText" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Foreground="White" TextWrapping="Wrap" Margin="20" />
-    <Border x:Name="StopButton" Background="#FF555555" Padding="15,8" CornerRadius="4" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,20">
-      <TextBlock Text="Wecker aus" Foreground="White" FontSize="16" />
+        Width="400"
+        MaxHeight="500"
+        SizeToContent="Height"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent">
+  <Panel Margin="15">
+    <Border x:Name="RootBorder"
+            BorderThickness="2"
+            CornerRadius="8"
+            BoxShadow="5 5 15 2 Black"
+            Background="#FF2D2D2D">
+      <Grid RowDefinitions="*,Auto">
+        <ScrollViewer Grid.Row="0"
+                      VerticalScrollBarVisibility="Auto"
+                      MaxHeight="380"
+                      Margin="10,15,10,0">
+          <StackPanel x:Name="AlarmStack" Spacing="20" />
+        </ScrollViewer>
+
+        <Border Grid.Row="1"
+                x:Name="StopButton"
+                Background="#FF555555"
+                Padding="15,8"
+                CornerRadius="4"
+                Cursor="Hand"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,15,0,15">
+          <TextBlock Text="Wecker aus" Foreground="White" FontSize="16" />
+        </Border>
+      </Grid>
     </Border>
-  </Grid>
+  </Panel>
 </Window>

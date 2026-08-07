@@ -1,9 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AnalogClock.KeyGenerator.MainWindow"
-        Title="KeyGenerator"
+        Title="AnalogClock KeyGenerator"
         Width="1100"
         Height="600"
+        MinWidth="800"
+        MinHeight="400"
+        CanResize="True"
         Background="#FF2D2D2D">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -15,29 +18,43 @@
             <Button x:Name="RestoreBackupButton" Content="Backup wiederherstellen" Foreground="White" Background="#FF555555" />
         </StackPanel>
 
-        <TextBlock Grid.Row="1" x:Name="StatusText" Text="Bereit" Foreground="White" Margin="10,0" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="10,0">
+            <TextBlock x:Name="StatusText" Text="Bereit" Foreground="White" VerticalAlignment="Center" />
+            <TextBox x:Name="SearchBox"
+                     Grid.Column="1"
+                     Watermark="Suchen (Kunde, Rechnungsnr., ...)"
+                     Width="300"
+                     Foreground="White"
+                     Background="#FF3D3D3D"
+                     CaretBrush="White" />
+        </Grid>
 
-        <Border Grid.Row="2" Background="#FF3D3D3D" Margin="10" Padding="5" CornerRadius="3">
+        <Border Grid.Row="2" Background="#FF3D3D3D" Margin="10" Padding="5" CornerRadius="3"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <DataGrid x:Name="RecordsGrid"
                       AutoGenerateColumns="False"
                       CanUserReorderColumns="False"
                       CanUserResizeColumns="True"
+                      CanUserSortColumns="True"
                       IsReadOnly="False"
                       GridLinesVisibility="All"
                       Background="#FF3D3D3D"
                       Foreground="White"
                       HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto">
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Lizenzschlüssel" Binding="{Binding Key, Mode=OneWay}" IsReadOnly="True" Width="360" />
-                    <DataGridTextColumn Header="Erzeugt am" Binding="{Binding CreatedAt, StringFormat=dd.MM.yyyy HH:mm, Mode=OneWay}" IsReadOnly="True" Width="165" />
-                    <DataGridTextColumn Header="Kunde" Binding="{Binding CustomerName, Mode=TwoWay}" Width="*" />
-                    <DataGridTextColumn Header="Rechnungsnr." Binding="{Binding InvoiceNumber, Mode=TwoWay}" Width="*" />
-                    <DataGridTextColumn Header="Rechnungspos." Binding="{Binding InvoicePosition, Mode=TwoWay}" Width="*" />
-                    <DataGridTemplateColumn Header="" Width="90">
+                    <DataGridTextColumn Header="Lizenzschlüssel" Binding="{Binding Key, Mode=OneWay}" IsReadOnly="True" Width="360" CanUserSort="True" />
+                    <DataGridTextColumn Header="Erzeugt am" Binding="{Binding CreatedAt, StringFormat=dd.MM.yyyy HH:mm, Mode=OneWay}" IsReadOnly="True" Width="165" CanUserSort="True" />
+                    <DataGridTextColumn Header="Kunde" Binding="{Binding CustomerName, Mode=TwoWay}" Width="*" CanUserSort="True" />
+                    <DataGridTextColumn Header="Rechnungsnr." Binding="{Binding InvoiceNumber, Mode=TwoWay}" Width="*" CanUserSort="True" />
+                    <DataGridTextColumn Header="Rechnungspos." Binding="{Binding InvoicePosition, Mode=TwoWay}" Width="*" CanUserSort="True" />
+                    <DataGridTemplateColumn Header="" Width="70" CanUserSort="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="Löschen" Width="80" Click="DeleteButton_Click" Background="#FF555555" Foreground="White" Padding="8,2" />
+                                <Button Content="&#x1F4CB;" Click="CopyButton_Click" Background="#FF555555" Foreground="White" Padding="4,2"
+                                        ToolTip.Tip="In Zwischenablage kopieren" HorizontalAlignment="Center" />
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

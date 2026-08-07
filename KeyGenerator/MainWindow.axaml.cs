@@ -14,6 +14,7 @@ namespace AnalogClock.KeyGenerator;
 public partial class MainWindow : Window
 {
     private readonly ObservableCollection<LicenseRecord> _records = new();
+    private readonly ObservableCollection<LicenseRecord> _filtered = new();
     private readonly string _filePath;
     private readonly string _backupPath;
 
@@ -25,14 +26,17 @@ public partial class MainWindow : Window
         _backupPath = _filePath + ".bak";
 
         DataContext = this;
-        RecordsGrid.ItemsSource = _records;
+        RecordsGrid.ItemsSource = _filtered;
 
         GenerateButton.Click += GenerateButton_Click;
         SaveButton.Click += SaveButton_Click;
         RestoreBackupButton.Click += RestoreBackupButton_Click;
+        SearchBox.TextChanged += SearchBox_TextChanged;
         RecordsGrid.CellEditEnded += (_, _) => SaveRecords();
+        Closing += (_, _) => SaveRecords();
 
         LoadRecords();
+        ApplyFilter();
         UpdateStatus();
     }
 
@@ -138,11 +142,17 @@ public partial class MainWindow : Window
             }
             while (_records.Any(r => r.Key == key) && attempts < maxAttempts);
 
-            _records.Add(new LicenseRecord
+            var record = new LicenseRecord
             {
                 Key = key,
                 CreatedAt = DateTime.Now
-            });
+            };
+
+            _records.Add(record);
+            if (MatchesFilter(record))
+            {
+                _filtered.Add(record);
+            }
         }
 
         SaveRecords();
@@ -175,6 +185,7 @@ public partial class MainWindow : Window
 
             File.Copy(_backupPath, _filePath);
             LoadRecords();
+            ApplyFilter();
             StatusText.Text = "Backup wiederhergestellt.";
             UpdateStatus();
         }
@@ -184,20 +195,60 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void DeleteButton_Click(object? sender, RoutedEventArgs e)
+    private async void CopyButton_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is not Button { DataContext: LicenseRecord record })
         {
             return;
         }
 
-        if (!await ConfirmAsync($"Schlüssel {record.Key} löschen?"))
+        if (Clipboard is not null)
         {
+            await Clipboard.SetTextAsync(record.Key);
+            StatusText.Text = $"{DateTime.Now:HH:mm:ss} – Schlüssel in Zwischenablage kopiert.";
+        }
+    }
+
+    private void SearchBox_TextChanged(object? sender, TextChangedEventArgs e)
+    {
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        _filtered.Clear();
+
+        var search = SearchBox.Text?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrEmpty(search))
+        {
+            foreach (var record in _records)
+            {
+                _filtered.Add(record);
+            }
             return;
         }
 
-        _records.Remove(record);
-        SaveRecords();
+        var term = search.ToUpperInvariant();
+        foreach (var record in _records.Where(MatchesFilter))
+        {
+            _filtered.Add(record);
+        }
+    }
+
+    private bool MatchesFilter(LicenseRecord record)
+    {
+        var search = SearchBox.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(search))
+        {
+            return true;
+        }
+
+        var term = search.ToUpperInvariant();
+        return record.Key.Contains(term, StringComparison.InvariantCultureIgnoreCase)
+               || record.CustomerName.Contains(term, StringComparison.InvariantCultureIgnoreCase)
+               || record.InvoiceNumber.Contains(term, StringComparison.InvariantCultureIgnoreCase)
+               || record.InvoicePosition.Contains(term, StringComparison.InvariantCultureIgnoreCase);
     }
 
     private async Task<bool> ConfirmAsync(string message)
