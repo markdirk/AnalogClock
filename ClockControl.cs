@@ -172,8 +172,7 @@ public class ClockControl : Control
             }
 
             _settings.CurrentTheme.SecondHandVisible = !_settings.CurrentTheme.SecondHandVisible;
-            _settings.SecondHandState = _settings.CurrentTheme.SecondHandVisible ? "Red" : "Hidden";
-            EnsureTheme();
+            showSecondHandText.Text = _settings.CurrentTheme.SecondHandVisible ? "Sekundenzeiger ausblenden" : "Sekundenzeiger einblenden";
             ApplyThemeAndSave();
         };
 
@@ -187,15 +186,13 @@ public class ClockControl : Control
             }
 
             _settings.CurrentTheme.HandsAboveInfo = !_settings.CurrentTheme.HandsAboveInfo;
+            handsAboveText.Text = _settings.CurrentTheme.HandsAboveInfo ? "Zeiger unter Datum/Zeit" : "Zeiger über Datum/Zeit";
             ApplyThemeAndSave();
         };
 
         var zeigerItem = new MenuItem { Header = "Zeiger" };
-        zeigerItem.Items.Add(CreateMenuItem("Sekunden-Zeiger rot", () => SetSecondHand("Red")));
-        zeigerItem.Items.Add(CreateMenuItem("Sekunden-Zeiger weiß", () => SetSecondHand("White")));
-        zeigerItem.Items.Add(CreateMenuItem("Sekundenzeiger aus", () => SetSecondHand("Hidden")));
-        zeigerItem.Items.Add(new Separator());
         zeigerItem.Items.Add(showSecondHandItem);
+        zeigerItem.Items.Add(new Separator());
         zeigerItem.Items.Add(handsAboveItem);
         menu.Items.Add(zeigerItem);
 
@@ -219,16 +216,11 @@ public class ClockControl : Control
         menu.Opening += (_, _) =>
         {
             RebuildThemeMenu(themesSub);
-            showSecondHandText.Text = ToggleText("Sekundenzeiger anzeigen", _settings.CurrentTheme?.SecondHandVisible ?? true);
-            handsAboveText.Text = ToggleText("Zeiger über Datum/Zeit", _settings.CurrentTheme?.HandsAboveInfo ?? false);
+            showSecondHandText.Text = (_settings.CurrentTheme?.SecondHandVisible ?? true) ? "Sekundenzeiger ausblenden" : "Sekundenzeiger einblenden";
+            handsAboveText.Text = (_settings.CurrentTheme?.HandsAboveInfo ?? true) ? "Zeiger unter Datum/Zeit" : "Zeiger über Datum/Zeit";
         };
 
         return menu;
-    }
-
-    private static string ToggleText(string label, bool isChecked)
-    {
-        return isChecked ? $"[x] {label}" : $"[ ] {label}";
     }
 
     private MenuItem CreateMenuItem(string header, Action action)
@@ -274,8 +266,6 @@ public class ClockControl : Control
     private void EnsureTheme()
     {
         _settings.CurrentTheme ??= CreateDefaultTheme();
-        _settings.CurrentTheme.SecondHandVisible = _settings.SecondHandState != "Hidden";
-        _settings.CurrentTheme.SecondHandColor = _settings.SecondHandState == "Red" ? "#FF800020" : "#FFFFFFFF";
 
         if (_settings.Themes.Count == 0)
         {
@@ -413,17 +403,6 @@ public class ClockControl : Control
             (byte)(color.R + (255 - color.R) * factor),
             (byte)(color.G + (255 - color.G) * factor),
             (byte)(color.B + (255 - color.B) * factor));
-    }
-
-    private void SetSecondHand(string state)
-    {
-        _settings.SecondHandState = state;
-        EnsureTheme();
-        _settings.CurrentTheme!.SecondHandVisible = state != "Hidden";
-        _settings.CurrentTheme.SecondHandColor = state == "Red" ? "#FF800020" : "#FFFFFFFF";
-        ApplyTheme();
-        SettingsService.Save(_settings);
-        InvalidateVisual();
     }
 
     private void OpenAlarmWindow()

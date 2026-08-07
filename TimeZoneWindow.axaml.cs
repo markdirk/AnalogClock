@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -12,6 +13,7 @@ public partial class TimeZoneWindow : Window
 {
     private ClockSettings _settings = new();
     private List<TimeZoneItem> _zones = new();
+    private readonly ObservableCollection<TimeZoneItem> _filtered = new();
 
     public TimeZoneWindow()
     {
@@ -27,14 +29,43 @@ public partial class TimeZoneWindow : Window
     private void SetupControls()
     {
         _zones = TimeZoneHelper.GetTimeZones();
-        ZoneList.ItemsSource = _zones;
+        foreach (var zone in _zones)
+        {
+            _filtered.Add(zone);
+        }
+
+        ZoneList.ItemsSource = _filtered;
         ZoneList.DisplayMemberBinding = new Binding("Display");
 
-        var current = _zones.FirstOrDefault(z => z.Id == _settings.TimeZoneId);
-        ZoneList.SelectedItem = current ?? _zones.FirstOrDefault();
+        SelectCurrent();
 
+        SearchBox.TextChanged += SearchBox_TextChanged;
         ApplyButton.Click += ApplyButton_Click;
         CancelButton.Click += CancelButton_Click;
+    }
+
+    private void SearchBox_TextChanged(object? sender, TextChangedEventArgs e)
+    {
+        var term = (SearchBox.Text ?? string.Empty).Trim().ToUpperInvariant();
+        _filtered.Clear();
+        foreach (var zone in _zones)
+        {
+            if (string.IsNullOrWhiteSpace(term) ||
+                zone.City.ToUpperInvariant().Contains(term) ||
+                zone.Display.ToUpperInvariant().Contains(term) ||
+                zone.Id.ToUpperInvariant().Contains(term))
+            {
+                _filtered.Add(zone);
+            }
+        }
+
+        SelectCurrent();
+    }
+
+    private void SelectCurrent()
+    {
+        var current = _filtered.FirstOrDefault(z => z.Id == _settings.TimeZoneId);
+        ZoneList.SelectedItem = current ?? _filtered.FirstOrDefault();
     }
 
     public void PositionNextTo(Window owner)

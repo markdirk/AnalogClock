@@ -56,11 +56,13 @@ public static class TimeZoneHelper
         ["America/Mexico_City"] = "Mexico City",
         ["America/Sao_Paulo"] = "São Paulo",
         ["America/Argentina/Buenos_Aires"] = "Buenos Aires",
+        ["America/Vancouver"] = "Vancouver",
         ["Asia/Dubai"] = "Dubai",
         ["Asia/Kolkata"] = "Mumbai",
         ["Asia/Shanghai"] = "Peking",
         ["Asia/Tokyo"] = "Tokio",
         ["Asia/Seoul"] = "Seoul",
+        ["Asia/Manila"] = "Manila",
         ["Australia/Sydney"] = "Sydney",
         ["Pacific/Auckland"] = "Wellington",
         ["Africa/Johannesburg"] = "Johannesburg",
@@ -68,36 +70,66 @@ public static class TimeZoneHelper
         ["Europe/Moscow"] = "Moskau",
         ["Asia/Bangkok"] = "Bangkok",
         ["Asia/Singapore"] = "Singapur",
-        ["America/Vancouver"] = "Vancouver",
         ["Europe/Istanbul"] = "Istanbul",
         ["Pacific/Honolulu"] = "Honolulu"
+    };
+
+    private static readonly (string Id, string City)[] AdditionalZones =
+    {
+        ("Asia/Manila", "Manila"),
+        ("America/Vancouver", "Vancouver")
     };
 
     public static List<TimeZoneItem> GetTimeZones()
     {
         var list = new List<TimeZoneItem>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var zones = TimeZoneInfo.GetSystemTimeZones();
 
         foreach (var tz in zones)
         {
-            var city = GetCity(tz);
-            var now = DateTime.Now;
-            var offset = tz.GetUtcOffset(now);
-            var totalMinutes = Math.Abs((int)offset.TotalMinutes);
-            var sign = offset < TimeSpan.Zero ? "-" : "+";
-            var offsetText = $"UTC{sign}{totalMinutes / 60:D2}:{totalMinutes % 60:D2}";
-            var display = $"{city} · {offsetText}";
+            var item = CreateItem(tz);
+            list.Add(item);
+            seen.Add($"{item.Id}|{item.City}");
+        }
 
-            list.Add(new TimeZoneItem
+        foreach (var (id, city) in AdditionalZones)
+        {
+            var tz = FindTimeZone(id) ?? FindConvertedTimeZone(id);
+            if (tz is null)
             {
-                Id = tz.Id,
-                Display = display,
-                City = city,
-                Offset = offset
-            });
+                continue;
+            }
+
+            var item = CreateItem(tz, city);
+            var key = $"{item.Id}|{item.City}";
+            if (!seen.Contains(key))
+            {
+                list.Add(item);
+                seen.Add(key);
+            }
         }
 
         return list.OrderBy(t => t.Offset).ThenBy(t => t.City).ToList();
+    }
+
+    private static TimeZoneItem CreateItem(TimeZoneInfo tz, string? cityOverride = null)
+    {
+        var city = cityOverride ?? GetCity(tz);
+        var now = DateTime.Now;
+        var offset = tz.GetUtcOffset(now);
+        var totalMinutes = Math.Abs((int)offset.TotalMinutes);
+        var sign = offset < TimeSpan.Zero ? "-" : "+";
+        var offsetText = $"UTC{sign}{totalMinutes / 60:D2}:{totalMinutes % 60:D2}";
+        var display = $"{city} · {offsetText}";
+
+        return new TimeZoneItem
+        {
+            Id = tz.Id,
+            Display = display,
+            City = city,
+            Offset = offset
+        };
     }
 
     public static TimeZoneInfo? FindTimeZone(string? id)
@@ -115,6 +147,33 @@ public static class TimeZoneHelper
         {
             return null;
         }
+    }
+
+    private static TimeZoneInfo? FindConvertedTimeZone(string id)
+    {
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                if (TimeZoneInfo.TryConvertIanaIdToWindowsId(id, out var windowsId) && !string.IsNullOrWhiteSpace(windowsId))
+                {
+                    return FindTimeZone(windowsId);
+                }
+            }
+            else
+            {
+                if (TimeZoneInfo.TryConvertWindowsIdToIanaId(id, out var ianaId) && !string.IsNullOrWhiteSpace(ianaId))
+                {
+                    return FindTimeZone(ianaId);
+                }
+            }
+        }
+        catch
+        {
+            // ignore conversion failures
+        }
+
+        return null;
     }
 
     public static TimeZoneItem? FindItem(string? id, List<TimeZoneItem>? cache = null)
@@ -153,7 +212,12 @@ public static class TimeZoneHelper
 
     public static DateTime ConvertToTimeZone(DateTime local, string? timeZoneId)
     {
-        var tz = FindTimeZone(timeZoneId);
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            return local;
+        }
+
+        var tz = FindTimeZone(timeZoneId) ?? FindConvertedTimeZone(timeZoneId);
         if (tz is null)
         {
             return local;
